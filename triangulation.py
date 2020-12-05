@@ -3,7 +3,8 @@ from random import shuffle
 class Triangulation:
 
     def __init__(self):
-        pass
+        self.triangles = set()
+        self.edges_map = {}
     
     def add_triangle(self, triangle):
         pass
@@ -14,38 +15,48 @@ class Triangulation:
         '''
         
     def triangle_containing(self, point):
-        pass
+        '''
+        zwraca trójkąt, w którym lezy punkt, ewentualnie lezy na brzegu
+        '''
 
-    def triangle_adjacent(self, triangle, edges):
-        pass
+    def triangle_adjacent(self, triangle, edge):
+        '''
+        zwraca trójkąt przyległy do 'triangle' o wspólnej krawędzi edge
+        '''
 
     def split_triangle(self, triangle, point):
-        pass
+        '''
+        podział trójkąta w przypadku, gdy nowy punk lezy wewnątrz
+        '''
 
     def split_triangle_on_edge(self, triangle, edge, point):
-        pass
-    
+        '''
+        podział trójkątów, gdy nowy punkt lezy na krawędzi
+        '''
+
     def remove_outer(self):
         '''
-        usunięcię wszystkich trójkątów, które zawierają dodane wierzchołki duzego trójkąta
+        usunięcię wszystkich trójkątów, które zawierają dodane na początku wierzchołki duzego trójkąta
         '''
+        
     def is_illegal(self, edge):
         pass
 
     def legalize_edge(self, point, edge, triangle):
         pass
-
-
-class Triangle:
     
     def edge_with_point(self, point):
         pass
-    
-    def third_vertex(self, edge):
+
+    def third_vertex(self, triangle, edge):
         '''
         zwraca wierzchołek trójkąta, który nie nalezy do edge
         '''
+
     def is_on_edge(self, point):
+        pass
+
+    def find_circumcircle(self, triangle):
         pass
 
 
@@ -73,7 +84,7 @@ def delaunay_triangulation(points):
         else: # punkt na brzegu trójkąta
             i, j = triangle_containing.edge_with_point(point)
             triangle_adjacent = triangulation.triangle_adjacent(triangle_containing, (i, j))
-            l = triangle_adjacent.third_vertex((i, j))
+            l = triangulation.third_vertex((i, j))
 
             triangulation.split_triangle_on_edge(triangle_containing, (i,j), point)
             triangulation.split_triangle_on_edge(triangle_adjacent, (i,j), point)
