@@ -1,4 +1,6 @@
 from random import shuffle
+from visualization import *
+
 
 class Triangulation:
 
@@ -26,7 +28,7 @@ class Triangulation:
 
     def split_triangle(self, triangle, point):
         '''
-        podział trójkąta w przypadku, gdy nowy punk lezy wewnątrz
+        podział trójkąta w przypadku, gdy nowy punkt lezy wewnątrz
         '''
 
     def split_triangle_on_edge(self, triangle, edge, point):
@@ -42,11 +44,14 @@ class Triangulation:
     def is_illegal(self, edge):
         pass
 
+
     def legalize_edge(self, point, edge, triangle):
         pass
+
     
     def edge_with_point(self, point):
         pass
+
 
     def third_vertex(self, triangle, edge):
         '''
@@ -55,6 +60,7 @@ class Triangulation:
 
     def is_on_edge(self, point):
         pass
+    
 
     def find_circumcircle(self, triangle):
         pass
@@ -95,3 +101,4 @@ def delaunay_triangulation(points):
             triangulation.legalize_edge(point, (k, i))
 
     triangulation.remove_outer()
+
