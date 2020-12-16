@@ -44,10 +44,14 @@ class Triangulation:
         zwraca trójkąt, w którym lezy punkt, ewentualnie lezy na brzegu
         '''
 
-    def triangle_adjacent(self, triangle, edge):
+    def triangle_adjacent(self, edge):
         '''
         zwraca trójkąt przyległy do 'triangle' o wspólnej krawędzi edge
+        zakłada, ze edge jest krawędzią skierowaną zgodną z kierunkiem trójkąta
+        przeciwnym do ruchu wskazówek zegara
         '''
+        return (edge[1], edge[0], self.edges_map(edge[1], edge[0]))
+
 
     def split_triangle(self, triangle, point):
         '''
@@ -75,7 +79,23 @@ class Triangulation:
 
         
     def is_illegal(self, edge):
-        pass
+        '''
+        czworokąt abcd o przekątnej edge
+
+        TODO: poprawić, gdy wierzchołek naley do zewnętrznego trójkąta
+        '''
+
+        b, c = edge
+        a = self.edges_map[edge]
+        d = self.edges_map[(c, b)]
+
+        circumcenter, radius = self.find_circumcircle((b, c, a))
+        
+        d_dist = self.dist(d, circumcenter)
+        if d_dist >= radius:
+            return False
+            
+        return True
 
 
     def legalize_edge(self, point, edge, triangle):
@@ -86,17 +106,42 @@ class Triangulation:
         pass
 
 
-    def third_vertex(self, triangle, edge):
+    def third_vertex(self, edge):
         '''
         zwraca wierzchołek trójkąta, który nie nalezy do edge
         '''
+        return self.edges_map(edge)
+
 
     def is_on_edge(self, point):
         pass
-    
+
+
+    def dist(self, point_1, point_2):
+        '''
+        odległość euklidesowa punktów point_1 i point_2
+        '''
+        return ((point_2[0]-point_1[0])**2 + (point_2[1]-point_1[1])**2)**0.5
+
 
     def find_circumcircle(self, triangle):
-        pass
+        '''
+        zwraca środek i promień okręgu opisanego na trójkącie triangle
+        wzorki z wikipedii
+        '''
+        a, b, c = triangle
+        
+        d = 2*(a[0]*(b[1]-c[1])+b[0]*(c[1]-a[1])+c[0]*(a[1]-b[1]))
+        
+        x = ((a[0]**2 + a[1]**2)*(b[1]-c[1]) 
+            + (b[0]**2 + b[1]**2)*(c[1]-a[1])
+            + (c[0]**2 + c[1]**2)*(a[1]-b[1]))/d
+
+        y = ((a[0]**2 + a[1]**2)*(c[0]-b[0]) 
+            + (b[0]**2 + b[1]**2)*(a[0]-c[0])
+            + (c[0]**2 + c[1]**2)*(b[0]-a[0]))/d
+
+        return (x, y), self.dist((x,y), a)
 
 
 
@@ -122,7 +167,7 @@ def delaunay_triangulation(points):
 
         else: # punkt na brzegu trójkąta
             i, j = triangle_containing.edge_with_point(point)
-            triangle_adjacent = triangulation.triangle_adjacent(triangle_containing, (i, j))
+            triangle_adjacent = triangulation.triangle_adjacent((i, j))
             l = triangulation.third_vertex((i, j))
 
             triangulation.split_triangle_on_edge(triangle_containing, (i,j), point)
