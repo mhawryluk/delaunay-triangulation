@@ -7,14 +7,37 @@ class Triangulation:
     def __init__(self):
         self.triangles = set()
         self.edges_map = {}
+        self.outer_triangle = None
     
+
     def add_triangle(self, triangle):
-        pass
+        self.triangles.add(triangle)
+
+        a, b, c = triangle
+        self.edges_map[(a, b)] = c
+        self.edges_map[(b, c)] = a
+        self.edges_map[(c, a)] = b
+
+
+    def remove_triangle(self, triangle):
+        self.triangles.remove(triangle)
+        
+        a, b, c = triangle
+        del self.edges_map[(a, b)]
+        del self.edges_map[(b, c)]
+        del self.edges_map[(c, a)]
+
 
     def make_outer_triangle(self, points):
         '''
         dodanie do triangulacji tymczasowego duzego trójkąta, który zawiera wszystkie punkty
         '''
+        max_coord = abs(max(points, key = lambda x: abs(x[0]))[0])
+        max_coord = max(max_coord, abs(max(points, key = lambda x: abs(x[1]))[1]))
+
+        self.outer_triangle = ((3*max_coord, 0), (0, 3*max_coord), (-3*max_coord, -3*max_coord))
+        self.add_triangle(self.outer_triangle)
+
         
     def triangle_containing(self, point):
         '''
@@ -40,6 +63,16 @@ class Triangulation:
         '''
         usunięcię wszystkich trójkątów, które zawierają dodane na początku wierzchołki duzego trójkąta
         '''
+
+        outer_vertices = set(self.outer_triangle)
+        triangles = list(self.triangles)
+
+        for triangle in triangles:
+            if not triangle[0] in outer_vertices and not triangle[1] in outer_vertices and not triangle[2] in outer_vertices:
+                continue
+
+            self.remove_triangle(triangle)
+
         
     def is_illegal(self, edge):
         pass
@@ -101,4 +134,3 @@ def delaunay_triangulation(points):
             triangulation.legalize_edge(point, (k, i))
 
     triangulation.remove_outer()
-
