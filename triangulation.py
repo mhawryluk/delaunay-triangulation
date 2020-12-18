@@ -1,7 +1,6 @@
 from random import shuffle
 from visualization import *
 
-
 class Triangulation:
 
     def __init__(self):
@@ -11,6 +10,8 @@ class Triangulation:
     
 
     def add_triangle(self, triangle):
+        triangle = self.sort_triangle_vertices(triangle)
+        
         self.triangles.add(triangle)
 
         a, b, c = triangle
@@ -20,12 +21,27 @@ class Triangulation:
 
 
     def remove_triangle(self, triangle):
+        triangle = self.sort_triangle_vertices(triangle)
+        
         self.triangles.remove(triangle)
         
         a, b, c = triangle
         del self.edges_map[(a, b)]
         del self.edges_map[(b, c)]
         del self.edges_map[(c, a)]
+
+    def sort_triangle_vertices(self, triangle):
+        a, b, c = triangle
+        
+        if detSgn(a,b,c) == -1:
+            a, b = b, a
+
+        while(a[1] > min(b[1], c[1])
+              or (a[1] == min(b[1], c[1]) and a[1] != b[1])):
+            a, b, c = b, c, a
+            
+        return (a, b, c)
+        
 
 
     def make_outer_triangle(self, points):
@@ -143,7 +159,23 @@ class Triangulation:
 
         return (x, y), self.dist((x,y), a)
 
+tolerance = 10**(-12)
 
+def det_sgn(a, b, c):
+    l1 = a[0]*b[1]
+    l2 = a[1]*c[0]
+    l3 = b[0]*c[1]
+    r1 = b[1]*c[0]
+    r2 = a[0]*c[1]
+    r3 = a[1]*b[0]
+
+    value = (l1 + l2 + l3) - (r1 + r2 + r3)
+
+    if value > tolerance:
+        return 1
+    if value < -tolerance:
+        return -1
+    return 0
 
 def delaunay_triangulation(points):
     '''
