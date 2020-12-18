@@ -7,6 +7,7 @@ class Triangulation:
         self.triangles = set()
         self.edges_map = {}
         self.outer_triangle = None
+        self.centeral_triangle = None
     
 
     def add_triangle(self, triangle):
@@ -33,7 +34,7 @@ class Triangulation:
     def sort_triangle_vertices(self, triangle):
         a, b, c = triangle
         
-        if detSgn(a,b,c) == -1:
+        if det_sgn(a,b,c) == -1:
             a, b = b, a
 
         while(a[1] > min(b[1], c[1])
@@ -41,8 +42,6 @@ class Triangulation:
             a, b, c = b, c, a
             
         return (a, b, c)
-        
-
 
     def make_outer_triangle(self, points):
         '''
@@ -54,11 +53,27 @@ class Triangulation:
         self.outer_triangle = ((3*max_coord, 0), (0, 3*max_coord), (-3*max_coord, -3*max_coord))
         self.add_triangle(self.outer_triangle)
 
+        self.central_triangle = self.outer_triangle
+
         
     def triangle_containing(self, point):
         '''
         zwraca trójkąt, w którym lezy punkt, ewentualnie lezy na brzegu
         '''
+        current = self.central_triangle
+
+        while True:
+            a, b, c = current
+            if det_sgn(a, b, point) == -1:
+                current = self.triangle_adjacent((a,b))
+            elif det_sgn(b, c, point) == -1:
+                current = self.triangle_adjacent((b,c))
+            elif det_sgn(c, a, point) == -1:
+                current = self.triangle_adjacent((c,a))
+            else:
+                return current
+                
+        
 
     def triangle_adjacent(self, edge):
         '''
@@ -66,7 +81,7 @@ class Triangulation:
         zakłada, ze edge jest krawędzią skierowaną zgodną z kierunkiem trójkąta
         przeciwnym do ruchu wskazówek zegara
         '''
-        return (edge[1], edge[0], self.edges_map(edge[1], edge[0]))
+        return self.sort_triangle_vertices(edge[1], edge[0], self.edges_map(edge[1], edge[0]))
 
 
     def split_triangle(self, triangle, point):
