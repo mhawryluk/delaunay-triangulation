@@ -14,7 +14,7 @@ class Triangulation:
         triangle = self.sort_triangle_vertices(triangle)
         
         self.triangles.add(triangle)
-
+        
         a, b, c = triangle
         self.edges_map[(a, b)] = c
         self.edges_map[(b, c)] = a
@@ -31,6 +31,7 @@ class Triangulation:
         del self.edges_map[(b, c)]
         del self.edges_map[(c, a)]
 
+
     def sort_triangle_vertices(self, triangle):
         a, b, c = triangle
         
@@ -42,6 +43,7 @@ class Triangulation:
             a, b, c = b, c, a
             
         return (a, b, c)
+
 
     def make_outer_triangle(self, points):
         '''
@@ -73,7 +75,6 @@ class Triangulation:
             else:
                 return current
                 
-        
 
     def triangle_adjacent(self, edge):
         '''
@@ -81,7 +82,29 @@ class Triangulation:
         zakłada, ze edge jest krawędzią skierowaną zgodną z kierunkiem trójkąta
         przeciwnym do ruchu wskazówek zegara
         '''
-        return self.sort_triangle_vertices(edge[1], edge[0], self.edges_map(edge[1], edge[0]))
+        if (edge[1], edge[0]) in self.edges_map:
+            return self.sort_triangle_vertices((edge[1], edge[0], self.edges_map(edge[1], edge[0])))
+        
+        return None
+
+
+    def all_triangles_adjacent(self, triangle):
+        triangles = []
+        a, b, c = triangle
+
+        triangle_adjacent = self.triangle_adjacent((a,b))
+        if triangle_adjacent:
+            triangles.append(triangle_adjacent)
+
+        triangle_adjacent = self.triangle_adjacent((b,c))
+        if triangle_adjacent:
+            triangles.append(triangle_adjacent)
+
+        triangle_adjacent = self.triangle_adjacent((c,a))
+        if triangle_adjacent:
+            triangles.append(triangle_adjacent)
+        
+        return triangles
 
 
     def split_triangle(self, triangle, point):
@@ -112,21 +135,52 @@ class Triangulation:
     def is_illegal(self, edge):
         '''
         czworokąt abcd o przekątnej edge
-
-        TODO: poprawić, gdy wierzchołek naley do zewnętrznego trójkąta
         '''
 
         b, c = edge
         a = self.edges_map[edge]
         d = self.edges_map[(c, b)]
 
-        circumcenter, radius = self.find_circumcircle((b, c, a))
-        
-        d_dist = self.dist(d, circumcenter)
-        if d_dist >= radius:
+        outer_vertices = set(self.outer_triangle)
+        if a in outer_vertices or b in outer_vertices or c in outer_vertices or d in outer_vertices:
+            return self.is_illegal_outer(edge)
+
+        return not self.is_within_circumcircle((a,b,c), d)
+
+
+    def is_illegal_outer(self, edge):
+
+        b, c = edge
+        a = self.edges_map[edge]
+        d = self.edges_map[(c, b)]
+
+        def outer_triangle_index(x):
+            v1 = max(self.outer_triangle, key=lambda x: x[0])
+            v2 = max(self.outer_triangle, key=lambda x: x[1])
+            v3 = min(self.outer_triangle, key=lambda x: x[0])
+
+            if x == v1: return -1
+            if x == v2: return -2
+            if x == v3: return -3
+            return 0
+
+        indices = list(map(outer_triangle_index, [a, b, c, d]))
+        is_outer = list(map(lambda x: x<0, indices))
+
+        if is_outer[1] and is_outer[2]:
             return False
-            
-        return True
+
+        if is_outer == [False, True, False, False] or is_outer == [False, False, True, False]:
+            return True
+
+        if (not is_outer[0] and is_outer[3]) or (is_outer[0] and not is_outer[3]):
+            return False
+        
+        negative_index_a_d = min(indices[0], indices[3])
+        negative_index_b_c = min(indices[1], indices[2])
+
+        return negative_index_b_c > negative_index_a_d
+
 
 
     def legalize_edge(self, point, edge, triangle):
@@ -148,13 +202,6 @@ class Triangulation:
         pass
 
 
-    def dist(self, point_1, point_2):
-        '''
-        odległość euklidesowa punktów point_1 i point_2
-        '''
-        return ((point_2[0]-point_1[0])**2 + (point_2[1]-point_1[1])**2)**0.5
-
-
     def find_circumcircle(self, triangle):
         '''
         zwraca środek i promień okręgu opisanego na trójkącie triangle
@@ -172,7 +219,34 @@ class Triangulation:
             + (b[0]**2 + b[1]**2)*(a[0]-c[0])
             + (c[0]**2 + c[1]**2)*(b[0]-a[0]))/d
 
-        return (x, y), self.dist((x,y), a)
+        return (x, y), dist((x,y), a)
+
+
+    def is_within_circumcircle(self, triangle, point):
+        '''
+        TODO: dodać tolerancję?
+        '''
+        circumcenter, radius = self.find_circumcircle(triangle)
+        
+        dist_to_center = dist(point, circumcenter)
+        return dist_to_center <= radius
+
+
+    def remove_and_connect(self, triangles_to_remove, point_to_add):
+        points = set()
+
+        for triangle in triangles_to_remove:
+            points.add(triangle[0])
+            points.add(triangle[1])
+            points.add(triangle[2])
+            self.remove_triangle(triangle)
+        
+        points = list(points)
+        sort_points(points, point_to_add, 0, len(points)-1)
+
+        for i in range(len(points)):
+            self.add_triangle((point_to_add, points[i], points[i-1]))
+
 
 tolerance = 10**(-12)
 
@@ -192,6 +266,34 @@ def det_sgn(a, b, c):
         return -1
     return 0
 
+
+def dist(point_1, point_2):
+    '''
+    odległość euklidesowa punktów point_1 i point_2
+    '''
+    return ((point_2[0]-point_1[0])**2 + (point_2[1]-point_1[1])**2)**0.5
+
+
+def sort_points(t, p0, a, b):  
+    '''
+    t -> tablica do posortowania (modyfikuje przekazaną tablicę)
+    p0 -> punkt względem którego sortujemy
+    a, b -> liczby naturalne określające przedział aktualnie sortowany
+    '''
+    
+    pivot = t[b]
+    i = a
+
+    for j in range(a, b):
+        if det_sgn(p0, t[j], pivot) == 1:
+            t[i], t[j] = t[j], t[i]
+            i += 1
+
+    t[b], t[i] = t[i], t[b]
+    if i > a: sort_points(t, p0, a, i-1)
+    if i < b: sort_points(t, p0, i+1, b)
+
+
 def delaunay_triangulation(points):
     '''
     główna funkcja do triangulacji w pierwszym wariancie
@@ -207,7 +309,7 @@ def delaunay_triangulation(points):
 
         if not triangle_containing.is_on_edge(point): # punkt wewnątrz trójkąta
             triangulation.split_triangle(triangle_containing, point)
-            i, j, k = triangle_containing.get_vertices()
+            i, j, k = triangle_containing
             triangulation.legalize_edge(point, (i, j))
             triangulation.legalize_edge(point, (j, k))
             triangulation.legalize_edge(point, (k, i))
@@ -226,3 +328,41 @@ def delaunay_triangulation(points):
             triangulation.legalize_edge(point, (k, i))
 
     triangulation.remove_outer()
+    return list(triangulation.triangles)
+
+
+def delaunay_triangulation_v2(points):
+    '''
+    główna funkcja do triangulacji w drugim wariancie
+    na podstawie wykładu
+    '''
+    triangulation = Triangulation()
+    triangulation.make_outer_triangle(points)
+
+    shuffle(points)
+
+    for point in points:
+        triangle_containing = triangulation.triangle_containing(point)
+
+        a, b, c = triangle_containing
+        stack = []
+        triangles_to_remove = [triangle_containing]
+        triangles_adjacent = triangulation.all_triangles_adjacent(triangle_containing)
+        stack += triangles_adjacent
+        triangles_visited = [triangle_containing]
+
+        while len(stack) > 0:
+            current_triangle = stack.pop()
+            triangles_visited.append(current_triangle)
+
+            if triangulation.is_within_circumcircle(current_triangle, point):
+                triangles_to_remove.append(current_triangle)
+                triangles_adjacent = triangulation.all_triangles_adjacent(current_triangle)
+                for triangle in triangles_adjacent:
+                    if triangle not in triangles_visited and triangle not in stack:
+                        stack.append(triangle)
+
+        triangulation.remove_and_connect(triangles_to_remove, point)
+    
+    triangulation.remove_outer()
+    return list(triangulation.triangles)
