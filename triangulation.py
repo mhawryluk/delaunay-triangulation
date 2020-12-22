@@ -88,11 +88,38 @@ class Triangulation:
         '''
         podział trójkąta w przypadku, gdy nowy punkt lezy wewnątrz
         '''
+        triangle1 = point, triangle[0], triangle[1]
+        triangle2 = point, triangle[1], triangle[2]
+        triangle3 = point, triangle[0], triangle[2]
+        
+        self.remove_triangle(triangle)
+        
+        self.add_triangle(triangle1)
+        self.add_triangle(triangle2)
+        self.add_triangle(triangle3)
+        
 
-    def split_triangle_on_edge(self, triangle, edge, point):
+    def split_triangle_on_edge(self, edge, point):
         '''
         podział trójkątów, gdy nowy punkt lezy na krawędzi
         '''
+        ver1, ver2 = edge
+        edge1 = ver1, ver2
+        edge2 = ver2, ver1
+        
+        triangle1 = point, ver1, self.third_vertex(edge1)
+        triangle2 = point, ver2, self.third_vertex(edge2)
+        triangle3 = point, ver1, self.third_vertex(edge1)
+        triangle4 = point, ver2, self.third_vertex(edge2)
+
+        self.remove_triangle((ver1, ver2, self.third_vertex(edge1)))
+        self.remove_triangle((ver1, ver2, self.third_vertex(edge2)))
+
+        self.add_triangle(triangle1)
+        self.add_triangle(triangle2)
+        self.add_triangle(triangle3)
+        self.add_triangle(triangle4)
+        
 
     def remove_outer(self):
         '''
@@ -129,12 +156,33 @@ class Triangulation:
         return True
 
 
-    def legalize_edge(self, point, edge, triangle):
-        pass
+    def legalize_edge(self, point, edge):
+        if self.is_illegal(edge):
+            a, b = edge
+            if(self.third_vertex(edge) != point):
+                a, b = b, a
+            c = self.third_vertex((b,a)) 
+            
+            self.delete_triangle((a,b,point))
+            self.delete_triangle((a,b,c))
+
+            self.add_triangle((a, point, c))
+            self.add_triangle((b, point, c))
+
+            self.legalize_edge(point, (a, c))
+            self.legalize_edge(point, (b, c))
 
     
-    def edge_with_point(self, point):
-        pass
+    def edge_with_point(self, point, triangle):
+        a, b, c = triangle
+        
+        if detSgn(a, b, point) == 0:
+            return (a, b)
+        if detSgn(b, c, point) == 0:
+            return (b, c)
+        if detSgn(c, a, point) == 0:
+            return (c, a)
+        return None
 
 
     def third_vertex(self, edge):
@@ -142,10 +190,6 @@ class Triangulation:
         zwraca wierzchołek trójkąta, który nie nalezy do edge
         '''
         return self.edges_map(edge)
-
-
-    def is_on_edge(self, point):
-        pass
 
 
     def dist(self, point_1, point_2):
