@@ -3,7 +3,7 @@
 # Narzędzie jest oparte o kilka zewnętrznych bibliotek, które potrzebujemy najpierw zaimportować.
 import numpy as np
 import matplotlib.pyplot as plt
-import matplotlib.collections as mcolls
+import matplotlib.collections as mcoll
 import matplotlib.colors as mcolors
 from matplotlib.widgets import Button
 import json as js
