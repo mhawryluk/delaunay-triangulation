@@ -8,6 +8,12 @@ class Triangulation:
         self.edges_map = {}
         self.outer_triangle = None
         self.centeral_triangle = None
+        self.central_point = None
+
+
+    def centroid_of_triangle(triangle):
+        (ax, ay), (bx, by), (cx, cy) = triangle
+        return ( (ax+bx+cx)/3 , (ay+by+cy)/3 )
     
 
     def add_triangle(self, triangle):
@@ -22,6 +28,9 @@ class Triangulation:
 
 
     def remove_triangle(self, triangle):
+        '''
+        funkcja wyliczająca śtrodek ciężkości trójkąta
+        '''
         triangle = self.sort_triangle_vertices(triangle)
         
         self.triangles.remove(triangle)
@@ -33,6 +42,9 @@ class Triangulation:
 
 
     def sort_triangle_vertices(self, triangle):
+        '''
+        sortowanie wierzchołków trójkąta ccw
+        '''
         a, b, c = triangle
         
         if det_sgn(a,b,c) == -1:
@@ -48,6 +60,7 @@ class Triangulation:
     def make_outer_triangle(self, points):
         '''
         dodanie do triangulacji tymczasowego duzego trójkąta, który zawiera wszystkie punkty
+        dodanie trójkąta środkowego i punktu środkowego (pomagającego w jego aktualicacji)
         '''
         max_coord = abs(max(points, key = lambda x: abs(x[0]))[0])
         max_coord = max(max_coord, abs(max(points, key = lambda x: abs(x[1]))[1]))
@@ -56,6 +69,7 @@ class Triangulation:
         self.add_triangle(self.outer_triangle)
 
         self.central_triangle = self.outer_triangle
+        self.central_point = self.centroid_of_triangle(self.outer_triangle)
 
         
     def triangle_containing(self, point):
@@ -107,6 +121,25 @@ class Triangulation:
         return triangles
 
 
+    def is_triangle_central(triangle):
+        '''
+        sprawdzenie, czy trójkąt jest trójkątem centralnym
+        '''
+        return self.sort_triangle_vertices(triangle) == self.central_triangle
+
+
+    def update_central_triangle(triangle_list):
+        '''
+        update centralnego trójkąta
+        '''
+        for triangle in triangle_list:
+            a, b, c = triangle
+            if detSgn(a, b, self.central_point) != -1 and detSgn(b, c, self.central_point) != -1 and detSgn(c, a, self.central_point) != -1:
+                self.central_triangle = triangle
+            
+            
+
+
     def split_triangle(self, triangle, point):
         '''
         podział trójkąta w przypadku, gdy nowy punkt lezy wewnątrz
@@ -114,7 +147,10 @@ class Triangulation:
         triangle1 = point, triangle[0], triangle[1]
         triangle2 = point, triangle[1], triangle[2]
         triangle3 = point, triangle[0], triangle[2]
-        
+
+        if self.is_triangle_central(triangle):
+            self.update_central_triangle([triangle1, triangle2, triangle3])
+            
         self.remove_triangle(triangle)
         
         self.add_triangle(triangle1)
@@ -129,14 +165,20 @@ class Triangulation:
         ver1, ver2 = edge
         edge1 = ver1, ver2
         edge2 = ver2, ver1
+
+        oldTriangle1 = ver1, ver2, self.third_vertex(edge1)
+        oldTriangle2 = ver1, ver2, self.third_vertex(edge2)
         
         triangle1 = point, ver1, self.third_vertex(edge1)
         triangle2 = point, ver2, self.third_vertex(edge2)
         triangle3 = point, ver1, self.third_vertex(edge1)
         triangle4 = point, ver2, self.third_vertex(edge2)
 
-        self.remove_triangle((ver1, ver2, self.third_vertex(edge1)))
-        self.remove_triangle((ver1, ver2, self.third_vertex(edge2)))
+        if self.is_triangle_central(oldTriangle1) or self.is_triangle_central(oldTriangle2):
+            self.update_central_triangle([triangle1, triangle2, triangle3, triangle4])
+
+        self.remove_triangle(oldTriangle1)
+        self.remove_triangle(oldTriangle2)
 
         self.add_triangle(triangle1)
         self.add_triangle(triangle2)
