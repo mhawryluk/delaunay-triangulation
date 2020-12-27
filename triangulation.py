@@ -259,6 +259,10 @@ class Triangulation:
         triangle3 = point, ver2, third_vertex_1
         triangle4 = point, ver2, third_vertex_2
 
+	self.scenes.append(Scene([PointsCollection([point], color='red')],
+                                [LinesCollection(list(self.edges_map.keys()), color='blue'),
+                                LinesCollection(self.edges(triangle1) + self.edges(triangle2) + self.edges(triangle3) + self.edges(triangle4), color='green')]))
+
 
         if self.is_triangle_central(oldTriangle1) or self.is_triangle_central(oldTriangle2):
             self.update_central_triangle([triangle1, triangle2, triangle3, triangle4])
