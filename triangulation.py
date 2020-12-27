@@ -3,7 +3,7 @@ from visualization import *
 from points_generator import *
 
 
-tolerance = 1e-8
+TOLERANCE = 1e-8
 
 class Triangulation:
 
@@ -77,7 +77,60 @@ class Triangulation:
         self.central_triangle = self.outer_triangle
         self.central_point = self.centroid_of_triangle(self.outer_triangle)
 
-        
+
+    def remove_outer(self, extended=False):
+        '''
+        usunięcię wszystkich trójkątów, które zawierają dodane na początku wierzchołki duzego trójkąta
+        '''
+
+        outer_vertices = set(self.outer_triangle)
+        triangles = list(self.triangles)
+
+        if extended:
+            self.make_convex()
+            # for triangle in triangles:
+            #     if not triangle[0] in outer_vertices and not triangle[1] in outer_vertices and not triangle[2] in outer_vertices:
+            #         continue
+            #     a, b, c = triangle
+            #     self.legalize_edge(c, (a,b))
+            #     self.legalize_edge(a, (b,c))
+            #     self.legalize_edge(b, (c,a))
+            # triangles = list(self.triangles)
+
+        triangles = list(self.triangles)
+        for triangle in triangles:
+            if not triangle[0] in outer_vertices and not triangle[1] in outer_vertices and not triangle[2] in outer_vertices:
+                continue
+            self.scenes.append(Scene(lines=[LinesCollection(list(self.edges_map.keys()), color='blue'),
+                                LinesCollection(self.edges(triangle), color='black')]))
+            self.remove_triangle(triangle)
+
+
+    def make_convex(self):
+        points = []
+        outer_vertices = set(self.outer_triangle)
+
+        for triangle in self.triangles:
+            if not triangle[0] in outer_vertices and not triangle[1] in outer_vertices and not triangle[2] in outer_vertices:
+                continue
+            
+            for vertex in triangle:
+                if not vertex in outer_vertices and not vertex in points:
+                    points.append(vertex)
+
+
+        sort_points(points, self.central_point, 0, len(points)-1)
+        self.scenes.append(Scene(points=[PointsCollection(points, color='coral')], 
+                                lines=[LinesCollection(list(self.edges_map.keys()), color='blue')]))
+
+
+        for i in range(len(points)):
+            if det_sgn(points[i], points[i-1], points[i-2]) == 1:
+                self.add_triangle((points[i], points[i-1], points[i-2]))
+                self.scenes.append(Scene(lines=[LinesCollection(list(self.edges_map.keys()), color='blue'),
+                                LinesCollection([(points[i],points[i-1]), (points[i-1],points[i-2]), (points[i-2],points[i])], color='coral')]))
+
+
     def triangle_containing(self, point):
         '''
         zwraca trójkąt, w którym lezy punkt, ewentualnie lezy na brzegu
@@ -151,9 +204,11 @@ class Triangulation:
             if det_sgn(a, b, self.central_point) != -1 and det_sgn(b, c, self.central_point) != -1 and det_sgn(c, a, self.central_point) != -1:
                 self.central_triangle = (a,b,c)
 
+
     def edges(self, triangle):  
         a, b, c = triangle
         return [(a,b), (b,c), (c,a)]
+
 
     def split_triangle(self, triangle, point):
         '''
@@ -220,31 +275,6 @@ class Triangulation:
         self.legalize_edge(point, (ver1, third_vertex_2))
         self.legalize_edge(point, (ver2, third_vertex_1))
         self.legalize_edge(point, (ver2, third_vertex_2))
-        
-
-    def remove_outer(self, extended=False):
-        '''
-        usunięcię wszystkich trójkątów, które zawierają dodane na początku wierzchołki duzego trójkąta
-        '''
-
-        outer_vertices = set(self.outer_triangle)
-        triangles = list(self.triangles)
-
-        if extended:
-            for triangle in triangles:
-                if not triangle[0] in outer_vertices and not triangle[1] in outer_vertices and not triangle[2] in outer_vertices:
-                    continue
-                a, b, c = triangle
-                self.legalize_edge(c, (a,b))
-                self.legalize_edge(a, (b,c))
-                self.legalize_edge(b, (c,a))
-
-            triangles = list(self.triangles)
-
-        for triangle in triangles:
-            if not triangle[0] in outer_vertices and not triangle[1] in outer_vertices and not triangle[2] in outer_vertices:
-                continue
-            self.remove_triangle(triangle)
 
 
     def intersect(self, l1b, l1e, l2b, l2e):
@@ -270,10 +300,52 @@ class Triangulation:
             return self.is_illegal_outer(edge)
         
         return self.is_within_circumcircle((a,b,c), d)
+
+
+    def is_illegal_2(self, edge):
+        b, c = edge
+        if not (c, b) in self.edges_map: return False
+        
+        a = self.edges_map[edge]
+        d = self.edges_map[(c, b)]
+
+        if not self.intersect(a, d, b, c):
+            return False
+
+        def outer_triangle_index(x):
+            v1 = max(self.outer_triangle, key=lambda x: x[0])
+            v2 = max(self.outer_triangle, key=lambda x: x[1])
+            v3 = min(self.outer_triangle, key=lambda x: x[0])
+
+            if x == v1: return -1
+            if x == v2: return -2
+            if x == v3: return -3
+            return 0
+
+        indices = list(map(outer_triangle_index, [a, b, c, d]))
+        is_outer = list(map(lambda x: x<0, indices))
+
+        if indices == [0,0,0,0]:
+            return self.is_within_circumcircle((b,c,a), d)
+
+        if is_outer[1] and is_outer[2]:
+            return False
+
+        if is_outer == [False, True, False, False] or is_outer == [False, False, True, False]:
+            return True
+
+        if is_outer == [True, False, False, False] or is_outer == [False, False, False, True]:
+            return False
+        
+        negative_index_a_d = min(indices[0], indices[3])
+        negative_index_b_c = min(indices[1], indices[2])
+
+        return negative_index_b_c > negative_index_a_d
         
 
     def is_illegal_outer(self, edge):
         b, c = edge
+        
         a = self.edges_map[edge]
         d = self.edges_map[(c, b)]
 
@@ -392,11 +464,34 @@ class Triangulation:
         return (x, y), dist((x,y), a)
 
 
+
     def is_within_circumcircle(self, triangle, point):
+
         circumcenter, radius = self.find_circumcircle(triangle)
         dist_to_center = dist(point, circumcenter)
 
-        return dist_to_center <= radius + tolerance
+        return dist_to_center <= radius - TOLERANCE
+
+    
+    def is_within_circumcircle_2(self, triangle, point):
+        
+        special_vertices_count = 0
+        for vertex in triangle:
+            if vertex in self.outer_triangle:
+                special_vertices_count += 1
+
+        if special_vertices_count == 2:
+            return False
+
+        circumcenter, radius = self.find_circumcircle(triangle)
+        dist_to_center = dist(point, circumcenter)
+
+        return dist_to_center <= radius - TOLERANCE
+    
+
+    def is_within_triangle(self, triangle, point):
+        a, b, c, = self.sort_triangle_vertices(triangle)
+        return det_sgn(a, b, point) != -1 and det_sgn(b, c, point) != -1 and det_sgn(c, a, point) != -1 
 
 
     def remove_and_connect(self, triangles_to_remove, point_to_add):
@@ -429,7 +524,6 @@ class Triangulation:
             self.update_central_triangle(triangles_added)
 
 
-
 def det_sgn(a, b, c):
     l1 = a[0]*b[1]
     l2 = a[1]*c[0]
@@ -440,9 +534,9 @@ def det_sgn(a, b, c):
 
     value = (l1 + l2 + l3) - (r1 + r2 + r3)
 
-    if value > tolerance:
+    if value > TOLERANCE:
         return 1
-    if value < -tolerance:
+    if value < -TOLERANCE:
         return -1
     return 0
 
@@ -450,8 +544,9 @@ def det_sgn(a, b, c):
 def dist(point_1, point_2):
     '''
     odległość euklidesowa punktów point_1 i point_2
+    do kwadratu
     '''
-    return ((point_2[0]-point_1[0])**2 + (point_2[1]-point_1[1])**2)**0.5
+    return (point_2[0]-point_1[0])**2 + (point_2[1]-point_1[1])**2
 
 
 def sort_points(t, p0, a, b):  
@@ -484,31 +579,29 @@ def delaunay_triangulation(points):
 
     # shuffle(points)
 
-    try:
-        for point in points:
-            triangle_containing = triangulation.triangle_containing(point)
-            edge = triangulation.edge_with_point(point, triangle_containing)
+    for point in points:
+        triangle_containing = triangulation.triangle_containing(point)
+        edge = triangulation.edge_with_point(point, triangle_containing)
 
-            if edge is None: # punkt wewnątrz trójkąta
-                triangulation.split_triangle(triangle_containing, point)
-                i, j, k = triangle_containing
+        if edge is None: # punkt wewnątrz trójkąta
+            triangulation.split_triangle(triangle_containing, point)
+            i, j, k = triangle_containing
 
 
-            else: # punkt na brzegu trójkąta
-                i, j = edge
-                triangle_adjacent = triangulation.triangle_adjacent((i, j))
-                l = triangulation.third_vertex((i, j))
+        else: # punkt na brzegu trójkąta
+            i, j = edge
+            triangle_adjacent = triangulation.triangle_adjacent((i, j))
+            l = triangulation.third_vertex((i, j))
 
-                triangulation.split_triangle_on_edge((i,j), point)
-    except:
-        pass
+            triangulation.split_triangle_on_edge((i,j), point)
 
-    triangulation.remove_outer(True)
-    triangulation.scenes.append(Scene(lines=[LinesCollection(triangulation.edges_map.keys())]))
+
+    triangulation.remove_outer()
+    triangulation.scenes.append(Scene(lines=[LinesCollection(triangulation.edges_map.keys(), color='blue')]))
     return list(triangulation.triangles), triangulation.edges_map.keys(), triangulation.scenes
 
 
-def delaunay_triangulation_v2(points):
+def delaunay_triangulation_v2(points): # Bowyer–Watson
     '''
     główna funkcja do triangulacji w drugim wariancie
     na podstawie wykładu
@@ -542,24 +635,33 @@ def delaunay_triangulation_v2(points):
         triangulation.remove_and_connect(triangles_to_remove, point)
     
     triangulation.remove_outer(True)
-    triangulation.scenes.append(Scene(lines=[LinesCollection(triangulation.edges_map.keys())]))
+    triangulation.scenes.append(Scene(lines=[LinesCollection(triangulation.edges_map.keys(), color='blue')]))
     return list(triangulation.triangles), triangulation.edges_map.keys(), triangulation.scenes
 
 
-from random import uniform
-points = [(uniform(-100, 100), uniform(-100, 100)) for _ in range(10)]
 
-points = generatePointsOnAxisAndDiagonals(0,0,10,10)
-# points = generatePointsOnCirdcle(15, 7, (0,0))
+if __name__ == '__main__':
+    for i in range(1):
 
-triangulation1, edges1, scenes1 = delaunay_triangulation(points)
-triangulation2, edges2, scenes2 = delaunay_triangulation_v2(points)
+        points = generate_random_points(int(uniform(5, 40)), -100, 100)
+        triangulation1, edges1, scenes1 = delaunay_triangulation(points)
+        triangulation2, edges2, scenes2 = delaunay_triangulation_v2(points)
 
-plot1 = Plot(scenes=scenes1)
-plot2 = Plot(scenes=scenes2)
+        plot1 = Plot(scenes=scenes1)
+        plot2 = Plot(scenes=scenes2)
+        plot1.draw()
+        plot2.draw()
 
-plot1.draw()
-plot2.draw()
+    # points = generate_random_points(20, -100, 100)
+
+    # triangulation1, edges1, scenes1 = delaunay_triangulation(points)
+    # triangulation2, edges2, scenes2 = delaunay_triangulation_v2(points)
+
+    # plot1 = Plot(scenes=scenes1)
+    # plot2 = Plot(scenes=scenes2)
+
+    # plot1.draw()
+    # plot2.draw()
         
 
 

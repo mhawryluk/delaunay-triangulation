@@ -2,36 +2,39 @@ from math import cos, sin, pi
 from random import uniform, random
 
 
-def generatePointsOnVertial(amount, x, y1, y2):
-    pointsList = []
+def generate_points_on_vertical(amount, x, y1, y2):
+    points_list = []
     for i in range(amount):
-        pointsList.append((x, uniform(y1,y2)))
-    return pointsList
+        points_list.append((x, uniform(y1,y2)))
+    return points_list
 
-def generatePoinsOnSegment(amount, p1, p2):
+def generate_points_on_segment(amount, p1, p2):
     if p1[0] == p2[0]:
-        return generatePointsOnVertial(amount, p1[0], min(p1[1], p2[1]), max(p1[1], p2[1]))
-    pointsList = []
+        return generate_points_on_vertical(amount, p1[0], min(p1[1], p2[1]), max(p1[1], p2[1]))
+    points_list = []
     a = (p2[1] - p1[1])/(p2[0] - p1[0]);
     b = p1[1] - a*p1[0];
     for i in range(amount):
         x = uniform(min(p1[0],p2[0]),max(p1[0],p2[0]))
-        pointsList.append(( x, a*x + b))
-    return pointsList
+        points_list.append(( x, a*x + b))
+    return points_list
 
-def generatePointsOnAxisAndDiagonals(amountAxis, amountDiagonal, x, y):
-    pointsList = [(0,0), (x,0), (0,y), (x,y)]
-    pointsList = pointsList + generatePoinsOnSegment(amountAxis, (0,0), (0,y))
-    pointsList = pointsList + generatePoinsOnSegment(amountAxis, (0,0), (x,0))
-    pointsList = pointsList + generatePoinsOnSegment(amountDiagonal, (0,y), (x,0))
-    pointsList = pointsList + generatePoinsOnSegment(amountDiagonal, (0,0), (x,y))
-    return pointsList
+def generate_points_on_axis_and_diagonals(amountAxis, amountDiagonal, x, y):
+    points_list = [(0,0), (x,0), (0,y), (x,y)]
+    points_list = points_list + generate_points_on_segment(amountAxis, (0,0), (0,y))
+    points_list = points_list + generate_points_on_segment(amountAxis, (0,0), (x,0))
+    points_list = points_list + generate_points_on_segment(amountDiagonal, (0,y), (x,0))
+    points_list = points_list + generate_points_on_segment(amountDiagonal, (0,0), (x,y))
+    return points_list
 
-
-def generatePointsOnCirdcle(amount, radius, center):
-    pointsList = []
+def generate_points_on_circle(amount, radius, center):
+    points_list = []
     for i in range(amount):
         t = random()
-        pt = ( radius * cos(2 * pi * t) + center[0], radius * sin(2 * pi * t) + center[1])
-        pointsList.append(pt)
-    return pointsList
+        pt = (radius * cos(2 * pi * t) + center[0], radius * sin(2 * pi * t) + center[1])
+        points_list.append(pt)
+    return points_list
+
+
+def generate_random_points(amount, range_from, range_to):
+    return [(uniform(range_from, range_to), uniform(range_from, range_to)) for _ in range(amount)]
