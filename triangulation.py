@@ -88,6 +88,7 @@ class Triangulation:
 
         if extended:
             self.make_convex()
+
             # for triangle in triangles:
             #     if not triangle[0] in outer_vertices and not triangle[1] in outer_vertices and not triangle[2] in outer_vertices:
             #         continue
@@ -95,7 +96,8 @@ class Triangulation:
             #     self.legalize_edge(c, (a,b))
             #     self.legalize_edge(a, (b,c))
             #     self.legalize_edge(b, (c,a))
-            # triangles = list(self.triangles)
+
+            triangles = list(self.triangles)
 
         triangles = list(self.triangles)
         for triangle in triangles:
