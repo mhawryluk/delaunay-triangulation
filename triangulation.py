@@ -1,4 +1,5 @@
 from random import shuffle
+from math import inf
 from visualization import *
 from points_generator import *
 
@@ -17,20 +18,7 @@ class Triangulation:
         self.scale = scale
 
     def get_lines(self):
-
-        lines = []
-        scale = self.scale
-        for edge in self.edges_map.keys():
-            a, b = edge
-            if a in self.outer_triangle:
-                a = (a[0]/scale*3, a[1]/scale*3)
-            if b in self.outer_triangle:
-                b = (b[0]/scale*3, b[1]/scale*3)
-        
-            if not (b,a) in lines:
-                lines.append((a,b))
-
-        return lines
+        return list(self.edges_map.keys())
 
 
     def centroid_of_triangle(self, triangle):
@@ -79,7 +67,7 @@ class Triangulation:
         return (a, b, c)
 
 
-    def make_outer_triangle(self, points, scale=5):
+    def make_outer_triangle(self, points):
         '''
         dodanie do triangulacji tymczasowego duzego trójkąta, który zawiera wszystkie punkty
         dodanie trójkąta środkowego i punktu środkowego (pomagającego w jego aktualicacji)
@@ -87,7 +75,7 @@ class Triangulation:
         max_coord = abs(max(points, key=lambda x: abs(x[0]))[0])
         max_coord = max(max_coord, abs(max(points, key = lambda x: abs(x[1]))[1]))
 
-        self.outer_triangle = ((scale*max_coord, 0), (0, scale*max_coord), (-scale*max_coord-1, -scale*max_coord))
+        self.outer_triangle = ((3*max_coord + 1, 0), (0, 3*max_coord + 1), (-3*max_coord-1, -3*max_coord-1))
         self.outer_triangle = self.sort_triangle_vertices(self.outer_triangle)
         self.add_triangle(self.outer_triangle)
 
@@ -101,27 +89,11 @@ class Triangulation:
         '''
 
         outer_vertices = set(self.outer_triangle)
-        triangles = list(self.triangles)
-
-        if extended:
-            # self.make_convex()
-
-            # for triangle in triangles:
-            #     if not triangle[0] in outer_vertices and not triangle[1] in outer_vertices and not triangle[2] in outer_vertices:
-            #         continue
-            #     a, b, c = triangle
-            #     self.legalize_edge(c, (a,b))
-            #     self.legalize_edge(a, (b,c))
-            #     self.legalize_edge(b, (c,a))
-
-            triangles = list(self.triangles)
 
         triangles = list(self.triangles)
         for triangle in triangles:
-            if not triangle[0] in outer_vertices and not triangle[1] in outer_vertices and not triangle[2] in outer_vertices:
-                continue
-
-            self.remove_triangle(triangle)
+            if triangle[0] in outer_vertices or triangle[1] in outer_vertices or triangle[2] in outer_vertices:
+                self.remove_triangle(triangle)
 
 
     def triangle_containing(self, point):
@@ -295,48 +267,7 @@ class Triangulation:
         if (a in outer_vertices or b in outer_vertices or c in outer_vertices or d in outer_vertices):
             return self.is_illegal_outer(edge)
         
-        return self.is_within_circumcircle((a,b,c), d)
-
-
-    def is_illegal_2(self, edge):
-        b, c = edge
-        if not (c, b) in self.edges_map: return False
-        
-        a = self.edges_map[edge]
-        d = self.edges_map[(c, b)]
-
-        if not self.intersect(a, d, b, c):
-            return False
-
-        def outer_triangle_index(x):
-            v1 = max(self.outer_triangle, key=lambda x: x[0])
-            v2 = max(self.outer_triangle, key=lambda x: x[1])
-            v3 = min(self.outer_triangle, key=lambda x: x[0])
-
-            if x == v1: return -1
-            if x == v2: return -2
-            if x == v3: return -3
-            return 0
-
-        indices = list(map(outer_triangle_index, [a, b, c, d]))
-        is_outer = list(map(lambda x: x<0, indices))
-
-        if indices == [0,0,0,0]:
-            return self.is_within_circumcircle((b,c,a), d)
-
-        if is_outer[1] and is_outer[2]:
-            return False
-
-        if is_outer == [False, True, False, False] or is_outer == [False, False, True, False]:
-            return True
-
-        if is_outer == [True, False, False, False] or is_outer == [False, False, False, True]:
-            return False
-        
-        negative_index_a_d = min(indices[0], indices[3])
-        negative_index_b_c = min(indices[1], indices[2])
-
-        return negative_index_b_c > negative_index_a_d
+        return self.is_within_circumcircle_det((a,b,c), d)
         
 
     def is_illegal_outer(self, edge):
@@ -460,7 +391,6 @@ class Triangulation:
         return (x, y), dist((x,y), a)
 
 
-
     def is_within_circumcircle(self, triangle, point):
 
         circumcenter, radius = self.find_circumcircle(triangle)
@@ -469,23 +399,30 @@ class Triangulation:
         return dist_to_center <= radius - TOLERANCE
 
     
-    def is_within_circumcircle_2(self, triangle, point):
+    def is_within_circumcircle_det(self, triangle, point):
 
-        if self.is_within_triangle(triangle, point):
-            return True
-        
-        special_vertices_count = 0
-        for vertex in triangle:
-            if vertex in self.outer_triangle:
-                special_vertices_count += 1
+        a, b, c = self.sort_triangle_vertices(triangle)
+        d = point
 
-        if special_vertices_count == 1:
-            return False
+        if a in self.outer_triangle:
+            a = (a[0]*self.scale, a[1]*self.scale)
 
-        circumcenter, radius = self.find_circumcircle(triangle)
-        dist_to_center = dist(point, circumcenter)
+        if b in self.outer_triangle:
+            b = (b[0]*self.scale, b[1]*self.scale)
 
-        return dist_to_center <= radius - TOLERANCE
+        if c in self.outer_triangle:
+            c = (c[0]*self.scale, c[1]*self.scale)
+
+        if d in self.outer_triangle:
+            d = (d[0]*self.scale, d[1]*self.scale)
+
+
+        matrix = np.array([[a[0], a[1], a[0]**2 + a[1]**2, 1],
+                            [b[0], b[1], b[0]**2 + b[1]**2, 1],
+                            [c[0], c[1], c[0]**2 + c[1]**2, 1],
+                            [d[0], d[1], d[0]**2 + d[1]**2, 1]])
+
+        return np.linalg.det(matrix) > -TOLERANCE
     
 
     def is_within_triangle(self, triangle, point):
@@ -568,13 +505,13 @@ def sort_points(t, p0, a, b):
     if i < b: sort_points(t, p0, i+1, b)
 
 
-def delaunay_triangulation(points, scale):
+def delaunay_triangulation(points):
     '''
     główna funkcja do triangulacji w pierwszym wariancie
     na podstawie pseudokodu z ksiązki de Berga
     '''
-    triangulation = Triangulation(scale)
-    triangulation.make_outer_triangle(points, scale)
+    triangulation = Triangulation(1)
+    triangulation.make_outer_triangle(points)
 
     # shuffle(points)
 
@@ -594,7 +531,6 @@ def delaunay_triangulation(points, scale):
 
             triangulation.split_triangle_on_edge((i,j), point)
 
-
     triangulation.remove_outer()
     triangulation.scenes.append(Scene(lines=[LinesCollection(list(triangulation.edges_map.keys()), color='darkblue')]))
     return list(triangulation.triangles), triangulation.get_lines(), triangulation.scenes
@@ -606,7 +542,7 @@ def delaunay_triangulation_v2(points, scale): # Bowyer–Watson
     na podstawie wykładu
     '''
     triangulation = Triangulation(scale)
-    triangulation.make_outer_triangle(points, scale)
+    triangulation.make_outer_triangle(points)
 
     # shuffle(points)
 
@@ -623,32 +559,13 @@ def delaunay_triangulation_v2(points, scale): # Bowyer–Watson
         while len(stack) > 0:
             current_triangle = stack.pop()
             triangles_visited.append(current_triangle)
-
-            if triangulation.is_within_circumcircle(current_triangle, point):
+            if triangulation.is_within_circumcircle_det(current_triangle, point):
                 triangles_to_remove.append(current_triangle)
                 triangles_adjacent = triangulation.all_triangles_adjacent(current_triangle)
                 for triangle in triangles_adjacent:
                     if triangle not in triangles_visited and triangle not in stack:
                         stack.append(triangle)
-
-        if (triangulation.outer_triangle[0], point) in triangulation.edges_map:
-            triangulation.legalize_edge((triangulation.outer_triangle[0], point))
-        
-        if (triangulation.outer_triangle[1], point) in triangulation.edges_map:
-            triangulation.legalize_edge((triangulation.outer_triangle[1], point))
-        
-        if (triangulation.outer_triangle[2], point) in triangulation.edges_map:
-            triangulation.legalize_edge((triangulation.outer_triangle[2], point))
-
-        if (point, triangulation.outer_triangle[0]) in triangulation.edges_map:
-            triangulation.legalize_edge((point, triangulation.outer_triangle[0]))
-        
-        if (point, triangulation.outer_triangle[1]) in triangulation.edges_map:
-            triangulation.legalize_edge((point, triangulation.outer_triangle[1]))
-        
-        if (point, triangulation.outer_triangle[2]) in triangulation.edges_map:
-            triangulation.legalize_edge((point, triangulation.outer_triangle[2]))
-        
+    
         triangulation.remove_and_connect(triangles_to_remove, point)
     
     triangulation.remove_outer(True)
@@ -658,37 +575,35 @@ def delaunay_triangulation_v2(points, scale): # Bowyer–Watson
 
 
 if __name__ == '__main__':
-    scenes = []
-    scales = [1000]
 
+    # scenes = []
+    # scales = [1, 10, 25, 50, 100, 1000]
 
-    for i in range(1):
-        points = generate_random_points(int(uniform(5, 40)), -100, 100)
-        for scale in scales:
-            triangulation1, edges1, scenes1 = delaunay_triangulation(points, scale)
-            scenes += scenes1
+    # for i in range(5):
+    #     points = generate_random_points(int(uniform(5, 40)), -100, 100)
+
+    #     triangulation1, edges1, scenes1 = delaunay_triangulation(points)
+    #     scenes.append(scenes1[-1])
         
-        for scale in scales:
-            triangulation1, edges1, scenes1 = delaunay_triangulation_v2(points, scale)
-            scenes += scenes1
+    #     for scale in scales:
+    #         triangulation1, edges1, scenes1 = delaunay_triangulation_v2(points, scale)
+    #         scenes.append(scenes1[-1])
 
-        # plot1 = Plot(scenes=[scenes1[-1]])
-        # plot2 = Plot(scenes=[scenes2[-1]])
-        # plot1.draw()
-        # plot2.draw()
     
-    plot = Plot(scenes=scenes)
-    plot.draw()
-    # points = generate_random_points(20, -100, 100)
+    # plot = Plot(scenes=scenes)
+    # plot.draw()
 
-    # triangulation1, edges1, scenes1 = delaunay_triangulation(points)
-    # triangulation2, edges2, scenes2 = delaunay_triangulation_v2(points)
+    for i in range(5):
+        points = generate_random_points(int(uniform(5, 40)), -100, 100)
 
-    # plot1 = Plot(scenes=scenes1)
-    # plot2 = Plot(scenes=scenes2)
+        triangulation1, edges1, scenes1 = delaunay_triangulation(points)
+        triangulation2, edges2, scenes2 = delaunay_triangulation_v2(points, 50)
 
-    # plot1.draw()
-    # plot2.draw()
+        plot1 = Plot(scenes=scenes1)
+        plot2 = Plot(scenes=scenes2)
+
+        plot1.draw()
+        plot2.draw()
         
 
 
