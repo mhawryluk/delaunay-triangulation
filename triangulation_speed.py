@@ -18,7 +18,7 @@ class Triangulation:
         self.central_triangle = None
         self.central_point = None
         self.time = 0
-        self.search_times = []
+        self.search_time = 0
         self.insert_times = []
 
         if algorithm == 1:
@@ -124,10 +124,10 @@ class Triangulation:
             elif det_sgn(c, a, point) == -1:
                 current = self.triangle_adjacent((c,a))
             else:
+                end = time()
+                self.search_time += (end-start)
                 return current
 
-        end = time()
-        self.search_times.append(end-start)
                 
 
     def triangle_adjacent(self, edge):
@@ -503,8 +503,10 @@ def delaunay_triangulation(points):
 
     start = time()
 
+    init_start = time()
     triangulation = Triangulation(0)
     triangulation.make_outer_triangle(points)
+    init_end = time()
 
     # shuffle(points)
 
@@ -524,10 +526,12 @@ def delaunay_triangulation(points):
 
             triangulation.split_triangle_on_edge((i,j), point)
 
+    remove_start = time()
     triangulation.remove_outer()
+    remove_end = time()
 
     end = time()
-    return end - start, triangulation.search_times, triangulation.insert_times
+    return end - start, triangulation.search_time, triangulation.insert_times, init_end - init_start, remove_end - remove_start
 
 
 def delaunay_triangulation_v2(points): # Bowyer–Watson
@@ -537,8 +541,11 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
     '''
 
     main_start = time()
+
+    init_start = time()
     triangulation = Triangulation(1)
     triangulation.make_outer_triangle(points)
+    init_end = time()
 
     # shuffle(points)
 
@@ -567,15 +574,12 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
         end = time()
         triangulation.insert_times.append(end-start)
     
+    remove_start = time()
     triangulation.remove_outer(True)
-
-
-    if (len(scenes) > 0):
-        plot = Plot(scenes=scenes)
-        plot.draw()
+    remove_end = time()
 
     main_end = time()
-    return main_end-main_start, triangulation.search_times, triangulation.insert_times
+    return main_end-main_start, triangulation.search_time, triangulation.insert_times, init_end - init_start, remove_end - remove_start
 
 
 
@@ -585,8 +589,18 @@ if __name__ == '__main__':
 
     for n in N:
         points = generate_random_points(n, -n, n)
-        time1, search1, insert1 = delaunay_triangulation(points)
-        time2, search2, insert2 = delaunay_triangulation_v2(points)
+        time1, search1, insert1, init1, remove1 = delaunay_triangulation(points)
+        time2, search2, insert2, init2, remove2 = delaunay_triangulation_v2(points)
 
-        print(f"{n}:\nv1: {time1} {sum(search1)} {sum(insert1)}\nv2: {time2} {sum(search2)} {sum(insert2)}")
+        print(f'''{n}:
+                    \nv1: init: {init1}
+                    search time: {search1} 
+                    insert time: {sum(insert1)}
+                    remove time: {remove1}
+                    total time: {time1} 
+                    \nv2: init: {init2}
+                    search time: {search2} 
+                    insert time: {sum(insert2)}
+                    remove time: {remove2}
+                    total time: {time2}''')
         
