@@ -2,9 +2,12 @@ from random import shuffle
 from math import inf
 from visualization import *
 from points_generator import *
+from time import time
 
 
-TOLERANCE = 1e-8
+scenes = []
+
+TOLERANCE = 1e-12
 
 class Triangulation:
 
@@ -14,9 +17,12 @@ class Triangulation:
         self.outer_triangle = None
         self.central_triangle = None
         self.central_point = None
-        self.scenes = []
+        self.time = 0
+        self.search_times = []
+        self.insert_times = []
+
         if algorithm == 1:
-            self.scale = 100
+            self.scale = 1000000000
         else:
             self.scale = 1
 
@@ -78,7 +84,7 @@ class Triangulation:
         max_coord = abs(max(points, key=lambda x: abs(x[0]))[0])
         max_coord = max(max_coord, abs(max(points, key = lambda x: abs(x[1]))[1]))
 
-        self.outer_triangle = ((3*max_coord + 1, 0), (0, 3*max_coord + 1), (-3*max_coord-1, -3*max_coord-1))
+        self.outer_triangle = ((4*max_coord + 1, 0), (0, 4*max_coord + 1), (-4*max_coord-1, -4*max_coord-1))
         self.outer_triangle = self.sort_triangle_vertices(self.outer_triangle)
         self.add_triangle(self.outer_triangle)
 
@@ -100,19 +106,16 @@ class Triangulation:
 
 
     def triangle_containing(self, point):
+
+        start = time()
         '''
         zwraca trójkąt, w którym lezy punkt, ewentualnie lezy na brzegu
         '''
         current = self.central_triangle
 
-        self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='blue')]))
 
         while True:
             a, b, c = current
-            self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='blue'),
-                                LinesCollection([(a,b), (b,c), (c,a)], color='yellow')]))             
 
             if det_sgn(a, b, point) == -1:
                 current = self.triangle_adjacent((a,b))
@@ -122,6 +125,9 @@ class Triangulation:
                 current = self.triangle_adjacent((c,a))
             else:
                 return current
+
+        end = time()
+        self.search_times.append(end-start)
                 
 
     def triangle_adjacent(self, edge):
@@ -173,6 +179,9 @@ class Triangulation:
 
 
     def edges(self, triangle):  
+        if triangle is None:
+            return []
+
         a, b, c = triangle
         return [(a,b), (b,c), (c,a)]
 
@@ -181,13 +190,11 @@ class Triangulation:
         '''
         podział trójkąta w przypadku, gdy nowy punkt lezy wewnątrz
         '''
+        start = time()
         triangle1 = point, triangle[0], triangle[1]
         triangle2 = point, triangle[1], triangle[2]
         triangle3 = point, triangle[0], triangle[2]
 
-        self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='blue'),
-                                LinesCollection(self.edges(triangle1) + self.edges(triangle2) + self.edges(triangle3), color='green')]))
 
         if self.is_triangle_central(triangle):
             self.update_central_triangle([triangle1, triangle2, triangle3])
@@ -201,12 +208,16 @@ class Triangulation:
         self.legalize_edge(point, (triangle[0], triangle[1]))
         self.legalize_edge(point, (triangle[1], triangle[2]))
         self.legalize_edge(point, (triangle[2], triangle[0]))
-        
+
+        end = time()
+        self.insert_times.append(end-start)
 
     def split_triangle_on_edge(self, edge, point):
         '''
         podział trójkątów, gdy nowy punkt lezy na krawędzi
         '''
+
+        start = time()
 
         ver1, ver2 = edge
 
@@ -225,10 +236,7 @@ class Triangulation:
         triangle2 = point, ver1, third_vertex_2
         triangle3 = point, ver2, third_vertex_1
         triangle4 = point, ver2, third_vertex_2
-        
-        self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='blue'),
-                                LinesCollection(self.edges(triangle1) + self.edges(triangle2) + self.edges(triangle3) + self.edges(triangle4), color='green')]))
+    
 
 
         if self.is_triangle_central(oldTriangle1) or self.is_triangle_central(oldTriangle2):
@@ -246,6 +254,9 @@ class Triangulation:
         self.legalize_edge(point, (ver1, third_vertex_2))
         self.legalize_edge(point, (ver2, third_vertex_1))
         self.legalize_edge(point, (ver2, third_vertex_2))
+
+        end = time()
+        self.insert_times.append(end-start)
 
 
     def intersect(self, l1b, l1e, l2b, l2e):
@@ -312,14 +323,6 @@ class Triangulation:
             return  
 
         illegal = self.is_illegal(edge)
-        if illegal:
-            self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                    [LinesCollection(self.get_lines(), color='blue'),
-                                    LinesCollection([edge], color='red')]))
-        else:
-            self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                    [LinesCollection(self.get_lines(), color='blue'),
-                                    LinesCollection([edge], color='lightgreen')]))
 
         if illegal:
             a, b = edge
@@ -330,19 +333,11 @@ class Triangulation:
             if self.is_triangle_central((a,b,point)) or  self.is_triangle_central((a,b,c)):
                 self.update_central_triangle([(a, point, c), (b, point, c)])
 
-            self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='blue'),
-                                LinesCollection(self.edges((a,b,point)) + self.edges((a,b,c)), color='purple')]))
-
             self.remove_triangle((a,b,point))
             self.remove_triangle((a,b,c))
             
             self.add_triangle((a, point, c))
             self.add_triangle((b, point, c))
-            
-            self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='blue'),
-                                LinesCollection(self.edges((a, point, c)) + self.edges((b, point, c)), color='purple')]))
 
             self.legalize_edge(point, (a, c))
             self.legalize_edge(point, (b, c))
@@ -447,17 +442,9 @@ class Triangulation:
         triangles_added = []
         edges_added = []
 
-        self.scenes.append(Scene([PointsCollection([point_to_add], color='red'),
-                            PointsCollection(self.outer_triangle, color='white')],
-                            [LinesCollection(self.get_lines(), color='blue')]))
-
         for i in range(len(points)):
             triangles_added.append((point_to_add, points[i], points[i-1]))
             self.add_triangle((point_to_add, points[i], points[i-1]))
-
-        self.scenes.append(Scene([PointsCollection([point_to_add], color='red')],
-                                [LinesCollection(self.get_lines(), color='blue'),
-                                LinesCollection([(point_to_add, points[i]) for i in range(len(points))], color='pink')]))
         
         if self.central_triangle in triangles_to_remove:
             self.update_central_triangle(triangles_added)
@@ -513,6 +500,9 @@ def delaunay_triangulation(points):
     główna funkcja do triangulacji w pierwszym wariancie
     na podstawie pseudokodu z ksiązki de Berga
     '''
+
+    start = time()
+
     triangulation = Triangulation(0)
     triangulation.make_outer_triangle(points)
 
@@ -535,15 +525,18 @@ def delaunay_triangulation(points):
             triangulation.split_triangle_on_edge((i,j), point)
 
     triangulation.remove_outer()
-    triangulation.scenes.append(Scene(lines=[LinesCollection(list(triangulation.edges_map.keys()), color='darkblue')]))
-    return list(triangulation.triangles), triangulation.get_lines(), triangulation.scenes
+
+    end = time()
+    return end - start, triangulation.search_times, triangulation.insert_times
 
 
-def delaunay_triangulation_v2(points, scale): # Bowyer–Watson
+def delaunay_triangulation_v2(points): # Bowyer–Watson
     '''
     główna funkcja do triangulacji w drugim wariancie
     na podstawie wykładu
     '''
+
+    main_start = time()
     triangulation = Triangulation(1)
     triangulation.make_outer_triangle(points)
 
@@ -552,6 +545,7 @@ def delaunay_triangulation_v2(points, scale): # Bowyer–Watson
     for point in points:
         triangle_containing = triangulation.triangle_containing(point)
 
+        start = time()
         stack = []
         triangles_to_remove = [triangle_containing]
         triangles_adjacent = triangulation.all_triangles_adjacent(triangle_containing)
@@ -570,43 +564,29 @@ def delaunay_triangulation_v2(points, scale): # Bowyer–Watson
                         stack.append(triangle)
     
         triangulation.remove_and_connect(triangles_to_remove, point)
+        end = time()
+        triangulation.insert_times.append(end-start)
     
     triangulation.remove_outer(True)
-    triangulation.scenes.append(Scene(lines=[LinesCollection(list(triangulation.edges_map.keys()), color='lightblue')]))
-    return list(triangulation.triangles), triangulation.edges_map.keys(), triangulation.scenes
+
+
+    if (len(scenes) > 0):
+        plot = Plot(scenes=scenes)
+        plot.draw()
+
+    main_end = time()
+    return main_end-main_start, triangulation.search_times, triangulation.insert_times
 
 
 
 if __name__ == '__main__':
 
-    # scenes = []
-    # scales = [1, 10, 25, 50, 100, 1000]
+    N = [10**5]
 
-    # for i in range(5):
-    #     points = generate_random_points(int(uniform(5, 40)), -100, 100)
+    for n in N:
+        points = generate_random_points(n, -n, n)
+        time1, search1, insert1 = delaunay_triangulation(points)
+        time2, search2, insert2 = delaunay_triangulation_v2(points)
 
-    #     triangulation1, edges1, scenes1 = delaunay_triangulation(points)
-    #     scenes.append(scenes1[-1])
+        print(f"{n}:\nv1: {time1} {sum(search1)} {sum(insert1)}\nv2: {time2} {sum(search2)} {sum(insert2)}")
         
-    #     for scale in scales:
-    #         triangulation1, edges1, scenes1 = delaunay_triangulation_v2(points, scale)
-    #         scenes.append(scenes1[-1])
-
-    
-    # plot = Plot(scenes=scenes)
-    # plot.draw()
-
-    for i in range(1):
-        points = generate_random_points(2000, -100, 100)
-
-        # triangulation1, edges1, scenes1 = delaunay_triangulation(points)
-        triangulation2, edges2, scenes2 = delaunay_triangulation_v2(points, 50)
-
-        # plot1 = Plot(scenes=scenes1)
-        plot2 = Plot(scenes=scenes2)
-
-        # plot1.draw()
-        plot2.draw()
-        
-
-
