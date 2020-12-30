@@ -125,7 +125,6 @@ class Triangulation:
                 self.search_time += (end-start)
                 return current
 
-                
 
     def triangle_adjacent(self, edge):
         '''
@@ -209,6 +208,7 @@ class Triangulation:
         end = time()
         self.insert_times.append(end-start)
 
+
     def split_triangle_on_edge(self, edge, point):
         '''
         podział trójkątów, gdy nowy punkt lezy na krawędzi
@@ -233,8 +233,6 @@ class Triangulation:
         triangle2 = point, ver1, third_vertex_2
         triangle3 = point, ver2, third_vertex_1
         triangle4 = point, ver2, third_vertex_2
-    
-
 
         if self.is_triangle_central(oldTriangle1) or self.is_triangle_central(oldTriangle2):
             self.update_central_triangle([triangle1, triangle2, triangle3, triangle4])

@@ -96,8 +96,6 @@ class Triangulation:
 
         triangles = list(self.triangles)
         for triangle in triangles:
-            self.scenes.append(Scene(lines = [LinesCollection(self.get_lines(), color='blue'),
-                                            LinesCollection(self.edges(triangle), color='black')]))
             if triangle[0] in outer_vertices or triangle[1] in outer_vertices or triangle[2] in outer_vertices:
                 self.remove_triangle(triangle)
 
@@ -654,7 +652,7 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
 if __name__ == '__main__':
 
     for i in range(1):
-        points = generate_random_points(5000, -0.5, 0.5)
+        points = generate_random_points(20, -200, 200)
         triangulation1, edges1, scenes1 = delaunay_triangulation(points)
         triangulation2, edges2, scenes2 = delaunay_triangulation_v2(points)
 
