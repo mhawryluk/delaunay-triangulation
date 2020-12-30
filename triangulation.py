@@ -16,7 +16,7 @@ class Triangulation:
         self.central_point = None
         self.scenes = []
         if algorithm == 1:
-            self.scale = 100
+            self.scale = 500
         else:
             self.scale = 1
 
@@ -49,7 +49,8 @@ class Triangulation:
         self.triangles.remove(triangle)
         
         a, b, c = triangle
-        del self.edges_map[(a, b)]
+
+        del self.edges_map[(a, b)] 
         del self.edges_map[(b, c)]
         del self.edges_map[(c, a)]
 
@@ -78,7 +79,7 @@ class Triangulation:
         max_coord = abs(max(points, key=lambda x: abs(x[0]))[0])
         max_coord = max(max_coord, abs(max(points, key = lambda x: abs(x[1]))[1]))
 
-        self.outer_triangle = ((3*max_coord, 0), (0, 3*max_coord), (-3*max_coord, -3*max_coord))
+        self.outer_triangle = ((4*max_coord, 0), (0, 4*max_coord), (-4*max_coord, -4*max_coord))
         self.outer_triangle = self.sort_triangle_vertices(self.outer_triangle)
         self.add_triangle(self.outer_triangle)
 
@@ -86,7 +87,7 @@ class Triangulation:
         self.central_point = self.centroid_of_triangle(self.outer_triangle)
 
 
-    def remove_outer(self, extended=False):
+    def remove_outer(self):
         '''
         usunięcię wszystkich trójkątów, które zawierają dodane na początku wierzchołki duzego trójkąta
         '''
@@ -95,6 +96,8 @@ class Triangulation:
 
         triangles = list(self.triangles)
         for triangle in triangles:
+            self.scenes.append(Scene(lines = [LinesCollection(self.get_lines(), color='blue'),
+                                            LinesCollection(self.edges(triangle), color='black')]))
             if triangle[0] in outer_vertices or triangle[1] in outer_vertices or triangle[2] in outer_vertices:
                 self.remove_triangle(triangle)
 
@@ -112,7 +115,7 @@ class Triangulation:
             a, b, c = current
             self.scenes.append(Scene([PointsCollection([point], color='red')],
                                 [LinesCollection(self.get_lines(), color='blue'),
-                                LinesCollection([(a,b), (b,c), (c,a)], color='yellow')]))             
+                                LinesCollection([(a,b), (b,c), (c,a)], color='yellow')]))              
 
             if det_sgn(a, b, point) == -1:
                 current = self.triangle_adjacent((a,b))
@@ -420,12 +423,17 @@ class Triangulation:
             d = (d[0]*self.scale, d[1]*self.scale)
 
 
-        matrix = np.array([[a[0], a[1], a[0]**2 + a[1]**2, 1],
-                            [b[0], b[1], b[0]**2 + b[1]**2, 1],
-                            [c[0], c[1], c[0]**2 + c[1]**2, 1],
-                            [d[0], d[1], d[0]**2 + d[1]**2, 1]])
+        # matrix = np.array([[a[0], a[1], a[0]**2 + a[1]**2, 1],
+        #                     [b[0], b[1], b[0]**2 + b[1]**2, 1],
+        #                     [c[0], c[1], c[0]**2 + c[1]**2, 1],
+        #                     [d[0], d[1], d[0]**2 + d[1]**2, 1]])
 
-        return np.linalg.det(matrix) > -TOLERANCE
+        matrix = [[a[0], a[1], a[0]**2 + a[1]**2, 1],
+                    [b[0], b[1], b[0]**2 + b[1]**2, 1],
+                    [c[0], c[1], c[0]**2 + c[1]**2, 1],
+                    [d[0], d[1], d[0]**2 + d[1]**2, 1]]
+
+        return determinant_recursive(matrix) > -TOLERANCE
     
 
     def is_within_triangle(self, triangle, point):
@@ -462,6 +470,7 @@ class Triangulation:
         if self.central_triangle in triangles_to_remove:
             self.update_central_triangle(triangles_added)
 
+
     def remove_and_connect_2(self, triangles_to_remove, point_to_add):
         outer_edges = []
 
@@ -472,7 +481,7 @@ class Triangulation:
                 a, b = edge
                 if not (b, a) in self.edges_map:
                     outer_edges.append(edge)
-                elif not self.sort_triangle_vertices((b, a, self.third_vertex((b,a)))) in triangles_to_remove:
+                elif not self.triangle_adjacent((a,b)) in triangles_to_remove:
                     outer_edges.append(edge)
 
         for triangle in triangles_to_remove:
@@ -524,6 +533,32 @@ def dist(point_1, point_2):
     do kwadratu
     '''
     return (point_2[0]-point_1[0])**2 + (point_2[1]-point_1[1])**2
+
+
+def copy_array(A):
+    return [x[:] for x in A]
+
+
+def determinant_recursive(A, total=0):
+    indices = list(range(len(A)))
+     
+    if len(A) == 2 and len(A[0]) == 2:
+        val = A[0][0] * A[1][1] - A[1][0] * A[0][1]
+        return val
+ 
+    for fc in indices:
+        As = copy_array(A)
+        As = As[1:]
+        height = len(As)
+ 
+        for i in range(height): 
+            As[i] = As[i][0:fc] + As[i][fc+1:] 
+ 
+        sign = (-1) ** (fc % 2)
+        sub_det = determinant_recursive(As)
+        total += sign * A[0][fc] * sub_det 
+ 
+    return total
 
 
 def sort_points(t, p0, a, b):  
@@ -609,9 +644,8 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
     
         triangulation.remove_and_connect_2(triangles_to_remove, point)
     
+    triangulation.remove_outer()
 
-    triangulation.remove_outer(True)
-    
     triangulation.scenes.append(Scene(lines=[LinesCollection(list(triangulation.edges_map.keys()), color='lightblue')]))
     return list(triangulation.triangles), triangulation.edges_map.keys(), triangulation.scenes
 
@@ -620,8 +654,7 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
 if __name__ == '__main__':
 
     for i in range(1):
-        points = generate_random_points(20, -100, 100)
-
+        points = generate_random_points(5000, -0.5, 0.5)
         triangulation1, edges1, scenes1 = delaunay_triangulation(points)
         triangulation2, edges2, scenes2 = delaunay_triangulation_v2(points)
 

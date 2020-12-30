@@ -27,7 +27,9 @@ def generate_points_on_axis_and_diagonals(amountAxis, amountDiagonal, x, y):
     points_list = points_list + generate_points_on_segment(amountDiagonal, (0,0), (x,y))
     return points_list
 
-def generate_points_on_circle(amount, radius, center):
+def generate_points_on_circle(amount):
+    center = (0,0)
+    radius = amount/3
     points_list = []
     for i in range(amount):
         t = random()

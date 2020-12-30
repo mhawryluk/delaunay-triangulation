@@ -4,10 +4,7 @@ from visualization import *
 from points_generator import *
 from time import time
 
-
-scenes = []
-
-TOLERANCE = 1e-12
+TOLERANCE = 1e-8
 
 class Triangulation:
 
@@ -22,7 +19,7 @@ class Triangulation:
         self.insert_times = []
 
         if algorithm == 1:
-            self.scale = 1000000000
+            self.scale = 1000
         else:
             self.scale = 1
 
@@ -415,12 +412,12 @@ class Triangulation:
             d = (d[0]*self.scale, d[1]*self.scale)
 
 
-        matrix = np.array([[a[0], a[1], a[0]**2 + a[1]**2, 1],
+        matrix = [[a[0], a[1], a[0]**2 + a[1]**2, 1],
                             [b[0], b[1], b[0]**2 + b[1]**2, 1],
                             [c[0], c[1], c[0]**2 + c[1]**2, 1],
-                            [d[0], d[1], d[0]**2 + d[1]**2, 1]])
+                            [d[0], d[1], d[0]**2 + d[1]**2, 1]]
 
-        return np.linalg.det(matrix) > -TOLERANCE
+        return determinant_recursive(matrix) > -TOLERANCE
     
 
     def is_within_triangle(self, triangle, point):
@@ -500,6 +497,31 @@ def dist(point_1, point_2):
     do kwadratu
     '''
     return (point_2[0]-point_1[0])**2 + (point_2[1]-point_1[1])**2
+
+def copy_array(A):
+    return [x[:] for x in A]
+
+
+def determinant_recursive(A, total=0):
+    indices = list(range(len(A)))
+     
+    if len(A) == 2 and len(A[0]) == 2:
+        val = A[0][0] * A[1][1] - A[1][0] * A[0][1]
+        return val
+ 
+    for fc in indices:
+        As = copy_array(A)
+        As = As[1:]
+        height = len(As)
+ 
+        for i in range(height): 
+            As[i] = As[i][0:fc] + As[i][fc+1:] 
+ 
+        sign = (-1) ** (fc % 2)
+        sub_det = determinant_recursive(As)
+        total += sign * A[0][fc] * sub_det 
+ 
+    return total
 
 
 def sort_points(t, p0, a, b):  
@@ -597,7 +619,7 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
                     if triangle not in triangles_visited and triangle not in stack:
                         stack.append(triangle)
     
-        triangulation.remove_and_connect(triangles_to_remove, point)
+        triangulation.remove_and_connect_2(triangles_to_remove, point)
         end = time()
         triangulation.insert_times.append(end-start)
     
@@ -612,27 +634,28 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
 
 if __name__ == '__main__':
 
-    # N = [10, 50, 100, 500, 1000, 2000, 5000, 10000]
-    N = [50000]
+    N = [10, 50, 100, 500, 1000, 2000, 5000, 10000]
+    # N = [50000]
 
-    for n in N:
-        points = generate_random_points(n, -n/2, n/2)
+    for i in range(5):
+        n = int(uniform(100, 1000))
+        points = generate_points_on_circle(n)
         time1, search1, insert1, init1, remove1 = delaunay_triangulation(points)
         time2, search2, insert2, init2, remove2 = delaunay_triangulation_v2(points)
 
-        # print(n, time1, time2)
+        print(n, time1, time2)
 
-        print(f'''{n}:
-                    \nv1: 
-                    init: {init1}
-                    search time: {search1} 
-                    insert time: {sum(insert1)}
-                    remove time: {remove1}
-                    total time: {time1} 
-                    \nv2: 
-                    init: {init2}
-                    search time: {search2} 
-                    insert time: {sum(insert2)}
-                    remove time: {remove2}
-                    total time: {time2}''')
+        # print(f'''{n}:
+        #             \nv1: 
+        #             init: {init1}
+        #             search time: {search1} 
+        #             insert time: {sum(insert1)}
+        #             remove time: {remove1}
+        #             total time: {time1} 
+        #             \nv2: 
+        #             init: {init2}
+        #             search time: {search2} 
+        #             insert time: {sum(insert2)}
+        #             remove time: {remove2}
+        #             total time: {time2}''')
         
