@@ -84,7 +84,7 @@ class Triangulation:
         max_coord = abs(max(points, key=lambda x: abs(x[0]))[0])
         max_coord = max(max_coord, abs(max(points, key = lambda x: abs(x[1]))[1]))
 
-        self.outer_triangle = ((4*max_coord + 1, 0), (0, 4*max_coord + 1), (-4*max_coord-1, -4*max_coord-1))
+        self.outer_triangle = ((4*max_coord, 0), (0, 4*max_coord), (-4*max_coord, -4*max_coord))
         self.outer_triangle = self.sort_triangle_vertices(self.outer_triangle)
         self.add_triangle(self.outer_triangle)
 
@@ -448,6 +448,33 @@ class Triangulation:
         
         if self.central_triangle in triangles_to_remove:
             self.update_central_triangle(triangles_added)
+    
+
+    def remove_and_connect_2(self, triangles_to_remove, point_to_add):
+        outer_edges = []
+
+        triangles_to_remove = list(map(lambda x: self.sort_triangle_vertices(x), triangles_to_remove))
+
+        for triangle in triangles_to_remove:
+            for edge in self.edges(triangle):
+                a, b = edge
+                if not (b, a) in self.edges_map:
+                    outer_edges.append(edge)
+                elif not self.sort_triangle_vertices((b, a, self.third_vertex((b,a)))) in triangles_to_remove:
+                    outer_edges.append(edge)
+
+        for triangle in triangles_to_remove:
+            self.remove_triangle(triangle)
+        
+        triangles_added = []
+
+        for edge in outer_edges:
+            triangles_added.append(self.sort_triangle_vertices((point_to_add, edge[0], edge[1])))
+            self.add_triangle((point_to_add, edge[0], edge[1]))
+
+        
+        if self.central_triangle in triangles_to_remove:
+            self.update_central_triangle(triangles_added)
 
 
 def det_sgn(a, b, c):
@@ -585,20 +612,25 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
 
 if __name__ == '__main__':
 
-    N = [10**5]
+    # N = [10, 50, 100, 500, 1000, 2000, 5000, 10000]
+    N = [50000]
 
     for n in N:
-        points = generate_random_points(n, -n, n)
+        points = generate_random_points(n, -n/2, n/2)
         time1, search1, insert1, init1, remove1 = delaunay_triangulation(points)
         time2, search2, insert2, init2, remove2 = delaunay_triangulation_v2(points)
 
+        # print(n, time1, time2)
+
         print(f'''{n}:
-                    \nv1: init: {init1}
+                    \nv1: 
+                    init: {init1}
                     search time: {search1} 
                     insert time: {sum(insert1)}
                     remove time: {remove1}
                     total time: {time1} 
-                    \nv2: init: {init2}
+                    \nv2: 
+                    init: {init2}
                     search time: {search2} 
                     insert time: {sum(insert2)}
                     remove time: {remove2}

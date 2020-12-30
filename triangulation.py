@@ -8,7 +8,7 @@ TOLERANCE = 1e-8
 
 class Triangulation:
 
-    def __init__(self, algorithm):
+    def __init__(self, algorithm=0):
         self.triangles = set()
         self.edges_map = {}
         self.outer_triangle = None
@@ -78,7 +78,7 @@ class Triangulation:
         max_coord = abs(max(points, key=lambda x: abs(x[0]))[0])
         max_coord = max(max_coord, abs(max(points, key = lambda x: abs(x[1]))[1]))
 
-        self.outer_triangle = ((3*max_coord + 1, 0), (0, 3*max_coord + 1), (-3*max_coord-1, -3*max_coord-1))
+        self.outer_triangle = ((3*max_coord, 0), (0, 3*max_coord), (-3*max_coord, -3*max_coord))
         self.outer_triangle = self.sort_triangle_vertices(self.outer_triangle)
         self.add_triangle(self.outer_triangle)
 
@@ -462,6 +462,44 @@ class Triangulation:
         if self.central_triangle in triangles_to_remove:
             self.update_central_triangle(triangles_added)
 
+    def remove_and_connect_2(self, triangles_to_remove, point_to_add):
+        outer_edges = []
+
+        triangles_to_remove = list(map(lambda x: self.sort_triangle_vertices(x), triangles_to_remove))
+
+        for triangle in triangles_to_remove:
+            for edge in self.edges(triangle):
+                a, b = edge
+                if not (b, a) in self.edges_map:
+                    outer_edges.append(edge)
+                elif not self.sort_triangle_vertices((b, a, self.third_vertex((b,a)))) in triangles_to_remove:
+                    outer_edges.append(edge)
+
+        for triangle in triangles_to_remove:
+            self.remove_triangle(triangle)
+        
+        triangles_added = []
+
+        self.scenes.append(Scene([PointsCollection([point_to_add], color='red'),
+                            PointsCollection(self.outer_triangle, color='white')],
+                            [LinesCollection(self.get_lines(), color='blue'),
+                            LinesCollection(outer_edges[:], color='pink')]))
+
+        for edge in outer_edges:
+            triangles_added.append(self.sort_triangle_vertices((point_to_add, edge[0], edge[1])))
+            self.add_triangle((point_to_add, edge[0], edge[1]))
+
+        for triangle in triangles_added:
+            outer_edges += self.edges(triangle)
+
+        self.scenes.append(Scene([PointsCollection([point_to_add], color='red')],
+                                [LinesCollection(self.get_lines(), color='blue'),
+                                LinesCollection(outer_edges[:], color='pink')]))
+        
+        if self.central_triangle in triangles_to_remove:
+            self.update_central_triangle(triangles_added)
+
+
 
 def det_sgn(a, b, c):
     l1 = a[0]*b[1]
@@ -539,7 +577,7 @@ def delaunay_triangulation(points):
     return list(triangulation.triangles), triangulation.get_lines(), triangulation.scenes
 
 
-def delaunay_triangulation_v2(points, scale): # Bowyer–Watson
+def delaunay_triangulation_v2(points): # Bowyer–Watson
     '''
     główna funkcja do triangulacji w drugim wariancie
     na podstawie wykładu
@@ -569,9 +607,11 @@ def delaunay_triangulation_v2(points, scale): # Bowyer–Watson
                     if triangle not in triangles_visited and triangle not in stack:
                         stack.append(triangle)
     
-        triangulation.remove_and_connect(triangles_to_remove, point)
+        triangulation.remove_and_connect_2(triangles_to_remove, point)
     
+
     triangulation.remove_outer(True)
+    
     triangulation.scenes.append(Scene(lines=[LinesCollection(list(triangulation.edges_map.keys()), color='lightblue')]))
     return list(triangulation.triangles), triangulation.edges_map.keys(), triangulation.scenes
 
@@ -579,34 +619,17 @@ def delaunay_triangulation_v2(points, scale): # Bowyer–Watson
 
 if __name__ == '__main__':
 
-    # scenes = []
-    # scales = [1, 10, 25, 50, 100, 1000]
-
-    # for i in range(5):
-    #     points = generate_random_points(int(uniform(5, 40)), -100, 100)
-
-    #     triangulation1, edges1, scenes1 = delaunay_triangulation(points)
-    #     scenes.append(scenes1[-1])
-        
-    #     for scale in scales:
-    #         triangulation1, edges1, scenes1 = delaunay_triangulation_v2(points, scale)
-    #         scenes.append(scenes1[-1])
-
-    
-    # plot = Plot(scenes=scenes)
-    # plot.draw()
-
     for i in range(1):
-        points = generate_random_points(2000, -100, 100)
+        points = generate_random_points(20, -100, 100)
 
-        # triangulation1, edges1, scenes1 = delaunay_triangulation(points)
-        triangulation2, edges2, scenes2 = delaunay_triangulation_v2(points, 50)
+        triangulation1, edges1, scenes1 = delaunay_triangulation(points)
+        triangulation2, edges2, scenes2 = delaunay_triangulation_v2(points)
 
-        # plot1 = Plot(scenes=scenes1)
+        plot1 = Plot(scenes=scenes1)
         plot2 = Plot(scenes=scenes2)
 
-        # plot1.draw()
+        plot1.draw()
         plot2.draw()
-        
+
 
 
