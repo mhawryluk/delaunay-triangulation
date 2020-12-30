@@ -47,19 +47,19 @@ def random_points():
     print("Wprowadź ilość punktów")
 
     amount = input()
-    return ([(0,0),(1,1),(2,2),(0,1),(1,0)])
+    return generate_random_points(amount, -amount/2, amount/2)
 
 def points_on_circle():
     print("Wprowadź ilość punktów")
     
     amount = input()
-    return ([(0,0),(1,1),(2,2),(0,2),(2,0)])
+    return generate_points_on_circle(amount)
 
 def points_on_rectangle():
     print("Wprowadź ilość punktów na osiach i ilość punktów na przekątnych")
 
-    amount_axis, amount_diagonal  = input()
-    return ([(0,0),(1,1),(2,2),(0,3),(3,0)])
+    amount_axis, amount_diagonal  = map(int, input().split())
+    return generate_points_on_axis_and_diagonals(amount_axis, amount_diagonal, amount_axis, 1.5*amount_axis)
     
 def main(options):
     flag = True

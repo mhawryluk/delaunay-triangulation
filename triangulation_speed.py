@@ -5,10 +5,11 @@ from points_generator import *
 from time import time
 
 TOLERANCE = 1e-8
+scenes = []
 
 class Triangulation:
 
-    def __init__(self, algorithm):
+    def __init__(self, algorithm=0):
         self.triangles = set()
         self.edges_map = {}
         self.outer_triangle = None
@@ -52,8 +53,13 @@ class Triangulation:
         self.triangles.remove(triangle)
         
         a, b, c = triangle
+        # if (a,b) in self.edges_map:
         del self.edges_map[(a, b)]
+        
+        # if (b, c) in self.edges_map:
         del self.edges_map[(b, c)]
+        
+        # if (c,a) in self.edges_map:
         del self.edges_map[(c, a)]
 
 
@@ -89,7 +95,7 @@ class Triangulation:
         self.central_point = self.centroid_of_triangle(self.outer_triangle)
 
 
-    def remove_outer(self, extended=False):
+    def remove_outer(self):
         '''
         usunięcię wszystkich trójkątów, które zawierają dodane na początku wierzchołki duzego trójkąta
         '''
@@ -110,8 +116,20 @@ class Triangulation:
         '''
         current = self.central_triangle
 
+        i = 0
 
         while True:
+            i += 1
+
+            if (i > len(self.triangles)):
+                print(i)
+                scenes.append(Scene(points=[PointsCollection([point], color='red')],
+                lines=[LinesCollection(self.get_lines(), color='blue'),
+                LinesCollection(self.edges(current), color='yellow')]))
+            
+            if (i >= len(self.triangles) + 100):
+                return
+
             a, b, c = current
 
             if det_sgn(a, b, point) == -1:
@@ -175,9 +193,6 @@ class Triangulation:
 
 
     def edges(self, triangle):  
-        if triangle is None:
-            return []
-
         a, b, c = triangle
         return [(a,b), (b,c), (c,a)]
 
@@ -455,7 +470,7 @@ class Triangulation:
                 a, b = edge
                 if not (b, a) in self.edges_map:
                     outer_edges.append(edge)
-                elif not self.sort_triangle_vertices((b, a, self.third_vertex((b,a)))) in triangles_to_remove:
+                elif not self.triangle_adjacent((a,b)) in triangles_to_remove:
                     outer_edges.append(edge)
 
         for triangle in triangles_to_remove:
@@ -557,22 +572,24 @@ def delaunay_triangulation(points):
 
     # shuffle(points)
 
-    for point in points:
-        triangle_containing = triangulation.triangle_containing(point)
-        edge = triangulation.edge_with_point(point, triangle_containing)
+    try:
+        for point in points:
+            triangle_containing = triangulation.triangle_containing(point)
+            edge = triangulation.edge_with_point(point, triangle_containing)
 
-        if edge is None: # punkt wewnątrz trójkąta
-            triangulation.split_triangle(triangle_containing, point)
-            i, j, k = triangle_containing
+            if edge is None: # punkt wewnątrz trójkąta
+                triangulation.split_triangle(triangle_containing, point)
+                i, j, k = triangle_containing
 
 
-        else: # punkt na brzegu trójkąta
-            i, j = edge
-            triangle_adjacent = triangulation.triangle_adjacent((i, j))
-            l = triangulation.third_vertex((i, j))
+            else: # punkt na brzegu trójkąta
+                i, j = edge
+                triangle_adjacent = triangulation.triangle_adjacent((i, j))
+                l = triangulation.third_vertex((i, j))
 
-            triangulation.split_triangle_on_edge((i,j), point)
-
+                triangulation.split_triangle_on_edge((i,j), point)
+    except:
+        pass
     remove_start = time()
     triangulation.remove_outer()
     remove_end = time()
@@ -622,7 +639,7 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
         triangulation.insert_times.append(end-start)
     
     remove_start = time()
-    triangulation.remove_outer(True)
+    triangulation.remove_outer()
     remove_end = time()
 
     main_end = time()
@@ -631,29 +648,39 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
 
 
 if __name__ == '__main__':
+    # N = [10, 50, 100, 500, 1000, 2000, 5000, 10000]
+    N = [1000, 10000, 50000]
 
-    N = [10, 50, 100, 500, 1000, 2000, 5000, 10000]
-    # N = [50000]
-
-    for i in range(5):
-        n = int(uniform(100, 1000))
+    for n in N:
         points = generate_points_on_circle(n)
-        time1, search1, insert1, init1, remove1 = delaunay_triangulation(points)
-        time2, search2, insert2, init2, remove2 = delaunay_triangulation_v2(points)
+        try:
+            time1, search1, insert1, init1, remove1 = delaunay_triangulation(points)
+        except:
+            pass
+        if len(scenes) > 0:
+            plot1 = Plot(scenes=scenes)
+            plot1.draw()
+        scenes = []
+        try:
+            time2, search2, insert2, init2, remove2 = delaunay_triangulation_v2(points)
+        except:
+            pass
+        if len(scenes) > 0:
+            plot2 = Plot(scenes=scenes)
+            plot2.draw()
 
-        print(n, time1, time2)
 
-        # print(f'''{n}:
-        #             \nv1: 
-        #             init: {init1}
-        #             search time: {search1} 
-        #             insert time: {sum(insert1)}
-        #             remove time: {remove1}
-        #             total time: {time1} 
-        #             \nv2: 
-        #             init: {init2}
-        #             search time: {search2} 
-        #             insert time: {sum(insert2)}
-        #             remove time: {remove2}
-        #             total time: {time2}''')
+        print(f'''{n}:
+                    \nv1: 
+                    init: {init1}
+                    search time: {search1} 
+                    insert time: {sum(insert1)}
+                    remove time: {remove1}
+                    total time: {time1} 
+                    \nv2: 
+                    init: {init2}
+                    search time: {search2} 
+                    insert time: {sum(insert2)}
+                    remove time: {remove2}
+                    total time: {time2}''')
         

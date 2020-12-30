@@ -29,7 +29,7 @@ def generate_points_on_axis_and_diagonals(amountAxis, amountDiagonal, x, y):
 
 def generate_points_on_circle(amount):
     center = (0,0)
-    radius = amount/3
+    radius = amount/2
     points_list = []
     for i in range(amount):
         t = random()
