@@ -6,6 +6,8 @@ from points_generator import *
 
 TOLERANCE = 1e-8
 
+triangulation_color = 'darkgrey'
+
 class Triangulation:
 
     def __init__(self, algorithm=0):
@@ -107,12 +109,12 @@ class Triangulation:
         current = self.central_triangle
 
         self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='darkgray')]))
+                                [LinesCollection(self.get_lines(), color=triangulation_color)]))
 
         while True:
             a, b, c = current
             self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='darkgray'),
+                                [LinesCollection(self.get_lines(), color=triangulation_color),
                                 LinesCollection([(a,b), (b,c), (c,a)], color='yellow')]))              
 
             if det_sgn(a, b, point) == -1:
@@ -187,7 +189,7 @@ class Triangulation:
         triangle3 = point, triangle[0], triangle[2]
 
         self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='darkgray'),
+                                [LinesCollection(self.get_lines(), color=triangulation_color),
                                 LinesCollection(self.edges(triangle1) + self.edges(triangle2) + self.edges(triangle3), color='green')]))
 
         if self.is_triangle_central(triangle):
@@ -228,7 +230,7 @@ class Triangulation:
         triangle4 = point, ver2, third_vertex_2
         
         self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='darkgray'),
+                                [LinesCollection(self.get_lines(), color=triangulation_color),
                                 LinesCollection(self.edges(triangle1) + self.edges(triangle2) + self.edges(triangle3) + self.edges(triangle4), color='green')]))
 
 
@@ -315,11 +317,11 @@ class Triangulation:
         illegal = self.is_illegal(edge)
         if illegal:
             self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                    [LinesCollection(self.get_lines(), color='darkgray'),
+                                    [LinesCollection(self.get_lines(), color=triangulation_color),
                                     LinesCollection([edge], color='red')]))
         else:
             self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                    [LinesCollection(self.get_lines(), color='darkgray'),
+                                    [LinesCollection(self.get_lines(), color=triangulation_color),
                                     LinesCollection([edge], color='lightgreen')]))
 
         if illegal:
@@ -332,7 +334,7 @@ class Triangulation:
                 self.update_central_triangle([(a, point, c), (b, point, c)])
 
             self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='darkgray'),
+                                [LinesCollection(self.get_lines(), color=triangulation_color),
                                 LinesCollection(self.edges((a,b,point)) + self.edges((a,b,c)), color='purple')]))
 
             self.remove_triangle((a,b,point))
@@ -342,7 +344,7 @@ class Triangulation:
             self.add_triangle((b, point, c))
             
             self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='darkgray'),
+                                [LinesCollection(self.get_lines(), color=triangulation_color),
                                 LinesCollection(self.edges((a, point, c)) + self.edges((b, point, c)), color='purple')]))
 
             self.legalize_edge(point, (a, c))
@@ -450,14 +452,14 @@ class Triangulation:
 
         self.scenes.append(Scene([PointsCollection([point_to_add], color='red'),
                             PointsCollection(self.outer_triangle, color='white')],
-                            [LinesCollection(self.get_lines(), color='darkgray')]))
+                            [LinesCollection(self.get_lines(), color=triangulation_color)]))
 
         for i in range(len(points)):
             triangles_added.append((point_to_add, points[i], points[i-1]))
             self.add_triangle((point_to_add, points[i], points[i-1]))
 
         self.scenes.append(Scene([PointsCollection([point_to_add], color='red')],
-                                [LinesCollection(self.get_lines(), color='darkgray'),
+                                [LinesCollection(self.get_lines(), color=triangulation_color),
                                 LinesCollection([(point_to_add, points[i]) for i in range(len(points))], color='pink')]))
         
         if self.central_triangle in triangles_to_remove:
@@ -484,7 +486,7 @@ class Triangulation:
 
         self.scenes.append(Scene([PointsCollection([point_to_add], color='red'),
                             PointsCollection(self.outer_triangle, color='white')],
-                            [LinesCollection(self.get_lines(), color='darkgray'),
+                            [LinesCollection(self.get_lines(), color=triangulation_color),
                             LinesCollection(outer_edges[:], color='pink')]))
 
         for edge in outer_edges:
@@ -495,7 +497,7 @@ class Triangulation:
             outer_edges += self.edges(triangle)
 
         self.scenes.append(Scene([PointsCollection([point_to_add], color='red')],
-                                [LinesCollection(self.get_lines(), color='darkgray'),
+                                [LinesCollection(self.get_lines(), color=triangulation_color),
                                 LinesCollection(outer_edges[:], color='pink')]))
         
         if self.central_triangle in triangles_to_remove:
