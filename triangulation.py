@@ -79,7 +79,7 @@ class Triangulation:
         max_coord = abs(max(points, key=lambda x: abs(x[0]))[0])
         max_coord = max(max_coord, abs(max(points, key = lambda x: abs(x[1]))[1]))
 
-        self.outer_triangle = ((4*max_coord, 0), (0, 4*max_coord), (-4*max_coord, -4*max_coord))
+        self.outer_triangle = ((3*max_coord, 0), (0, 3*max_coord), (-3*max_coord, -3*max_coord))
         self.outer_triangle = self.sort_triangle_vertices(self.outer_triangle)
         self.add_triangle(self.outer_triangle)
 
@@ -107,12 +107,12 @@ class Triangulation:
         current = self.central_triangle
 
         self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='blue')]))
+                                [LinesCollection(self.get_lines(), color='darkgray')]))
 
         while True:
             a, b, c = current
             self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='blue'),
+                                [LinesCollection(self.get_lines(), color='darkgray'),
                                 LinesCollection([(a,b), (b,c), (c,a)], color='yellow')]))              
 
             if det_sgn(a, b, point) == -1:
@@ -187,7 +187,7 @@ class Triangulation:
         triangle3 = point, triangle[0], triangle[2]
 
         self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='blue'),
+                                [LinesCollection(self.get_lines(), color='darkgray'),
                                 LinesCollection(self.edges(triangle1) + self.edges(triangle2) + self.edges(triangle3), color='green')]))
 
         if self.is_triangle_central(triangle):
@@ -228,7 +228,7 @@ class Triangulation:
         triangle4 = point, ver2, third_vertex_2
         
         self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='blue'),
+                                [LinesCollection(self.get_lines(), color='darkgray'),
                                 LinesCollection(self.edges(triangle1) + self.edges(triangle2) + self.edges(triangle3) + self.edges(triangle4), color='green')]))
 
 
@@ -315,11 +315,11 @@ class Triangulation:
         illegal = self.is_illegal(edge)
         if illegal:
             self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                    [LinesCollection(self.get_lines(), color='blue'),
+                                    [LinesCollection(self.get_lines(), color='darkgray'),
                                     LinesCollection([edge], color='red')]))
         else:
             self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                    [LinesCollection(self.get_lines(), color='blue'),
+                                    [LinesCollection(self.get_lines(), color='darkgray'),
                                     LinesCollection([edge], color='lightgreen')]))
 
         if illegal:
@@ -332,7 +332,7 @@ class Triangulation:
                 self.update_central_triangle([(a, point, c), (b, point, c)])
 
             self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='blue'),
+                                [LinesCollection(self.get_lines(), color='darkgray'),
                                 LinesCollection(self.edges((a,b,point)) + self.edges((a,b,c)), color='purple')]))
 
             self.remove_triangle((a,b,point))
@@ -342,7 +342,7 @@ class Triangulation:
             self.add_triangle((b, point, c))
             
             self.scenes.append(Scene([PointsCollection([point], color='red')],
-                                [LinesCollection(self.get_lines(), color='blue'),
+                                [LinesCollection(self.get_lines(), color='darkgray'),
                                 LinesCollection(self.edges((a, point, c)) + self.edges((b, point, c)), color='purple')]))
 
             self.legalize_edge(point, (a, c))
@@ -450,14 +450,14 @@ class Triangulation:
 
         self.scenes.append(Scene([PointsCollection([point_to_add], color='red'),
                             PointsCollection(self.outer_triangle, color='white')],
-                            [LinesCollection(self.get_lines(), color='blue')]))
+                            [LinesCollection(self.get_lines(), color='darkgray')]))
 
         for i in range(len(points)):
             triangles_added.append((point_to_add, points[i], points[i-1]))
             self.add_triangle((point_to_add, points[i], points[i-1]))
 
         self.scenes.append(Scene([PointsCollection([point_to_add], color='red')],
-                                [LinesCollection(self.get_lines(), color='blue'),
+                                [LinesCollection(self.get_lines(), color='darkgray'),
                                 LinesCollection([(point_to_add, points[i]) for i in range(len(points))], color='pink')]))
         
         if self.central_triangle in triangles_to_remove:
@@ -484,7 +484,7 @@ class Triangulation:
 
         self.scenes.append(Scene([PointsCollection([point_to_add], color='red'),
                             PointsCollection(self.outer_triangle, color='white')],
-                            [LinesCollection(self.get_lines(), color='blue'),
+                            [LinesCollection(self.get_lines(), color='darkgray'),
                             LinesCollection(outer_edges[:], color='pink')]))
 
         for edge in outer_edges:
@@ -495,7 +495,7 @@ class Triangulation:
             outer_edges += self.edges(triangle)
 
         self.scenes.append(Scene([PointsCollection([point_to_add], color='red')],
-                                [LinesCollection(self.get_lines(), color='blue'),
+                                [LinesCollection(self.get_lines(), color='darkgray'),
                                 LinesCollection(outer_edges[:], color='pink')]))
         
         if self.central_triangle in triangles_to_remove:
@@ -601,7 +601,9 @@ def delaunay_triangulation(points):
             triangulation.split_triangle_on_edge((i,j), point)
 
     triangulation.remove_outer()
-    triangulation.scenes.append(Scene(lines=[LinesCollection(list(triangulation.edges_map.keys()), color='darkblue')]))
+    triangulation.scenes.append(Scene(
+        lines=[LinesCollection(list(triangulation.edges_map.keys()), color='darkblue'),
+        LinesCollection(triangulation.edges(triangulation.central_triangle, color='yellow'))]))
     return list(triangulation.triangles), triangulation.get_lines(), triangulation.scenes
 
 
@@ -618,23 +620,26 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
     for point in points:
         triangle_containing = triangulation.triangle_containing(point)
 
-        stack = []
-        triangles_to_remove = [triangle_containing]
-        triangles_adjacent = triangulation.all_triangles_adjacent(triangle_containing)
-        stack += triangles_adjacent
-        triangles_visited = [triangle_containing]
+        stack = [triangle_containing]
+        triangles_to_remove = []
+        triangles_visited = []
 
+        triangles_edges = triangulation.edges(triangle_containing)
 
         while len(stack) > 0:
             current_triangle = stack.pop()
             triangles_visited.append(current_triangle)
             if triangulation.is_within_circumcircle_det(current_triangle, point):
                 triangles_to_remove.append(current_triangle)
+                triangles_edges += triangulation.edges(current_triangle)
                 triangles_adjacent = triangulation.all_triangles_adjacent(current_triangle)
                 for triangle in triangles_adjacent:
                     if triangle not in triangles_visited and triangle not in stack:
                         stack.append(triangle)
-    
+
+        triangulation.scenes.append(Scene(points=[PointsCollection([point], color='red')],
+            lines=[LinesCollection(triangulation.get_lines(), color='darkgray'),
+                                                LinesCollection(triangles_edges, color='pink')]))
         triangulation.remove_and_connect_2(triangles_to_remove, point)
     
     triangulation.remove_outer()

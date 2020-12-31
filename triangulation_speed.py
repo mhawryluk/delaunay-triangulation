@@ -572,24 +572,23 @@ def delaunay_triangulation(points):
 
     # shuffle(points)
 
-    try:
-        for point in points:
-            triangle_containing = triangulation.triangle_containing(point)
-            edge = triangulation.edge_with_point(point, triangle_containing)
+    for point in points:
+        print(points.index(point), '/', len(points))
+        triangle_containing = triangulation.triangle_containing(point)
+        edge = triangulation.edge_with_point(point, triangle_containing)
 
-            if edge is None: # punkt wewnątrz trójkąta
-                triangulation.split_triangle(triangle_containing, point)
-                i, j, k = triangle_containing
+        if edge is None: # punkt wewnątrz trójkąta
+            triangulation.split_triangle(triangle_containing, point)
+            i, j, k = triangle_containing
 
 
-            else: # punkt na brzegu trójkąta
-                i, j = edge
-                triangle_adjacent = triangulation.triangle_adjacent((i, j))
-                l = triangulation.third_vertex((i, j))
+        else: # punkt na brzegu trójkąta
+            i, j = edge
+            triangle_adjacent = triangulation.triangle_adjacent((i, j))
+            l = triangulation.third_vertex((i, j))
 
-                triangulation.split_triangle_on_edge((i,j), point)
-    except:
-        pass
+            triangulation.split_triangle_on_edge((i,j), point)
+
     remove_start = time()
     triangulation.remove_outer()
     remove_end = time()
@@ -649,38 +648,55 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
 
 if __name__ == '__main__':
     # N = [10, 50, 100, 500, 1000, 2000, 5000, 10000]
-    N = [1000, 10000, 50000]
+    N = [10000, 50000]
 
     for n in N:
         points = generate_points_on_circle(n)
+
         try:
             time1, search1, insert1, init1, remove1 = delaunay_triangulation(points)
-        except:
-            pass
-        if len(scenes) > 0:
-            plot1 = Plot(scenes=scenes)
-            plot1.draw()
-        scenes = []
-        try:
-            time2, search2, insert2, init2, remove2 = delaunay_triangulation_v2(points)
-        except:
-            pass
-        if len(scenes) > 0:
-            plot2 = Plot(scenes=scenes)
-            plot2.draw()
-
-
-        print(f'''{n}:
+            print(f'''{n}:
                     \nv1: 
                     init: {init1}
                     search time: {search1} 
                     insert time: {sum(insert1)}
                     remove time: {remove1}
-                    total time: {time1} 
-                    \nv2: 
+                    total time: {time1} ''')
+            
+            if len(scenes) > 0:
+                plot1 = Plot(scenes=scenes)
+                plot1.draw()
+        except:
+            pass
+        scenes = []
+
+        try:
+            time2, search2, insert2, init2, remove2 = delaunay_triangulation_v2(points)
+            print(f'''v2: 
                     init: {init2}
                     search time: {search2} 
                     insert time: {sum(insert2)}
                     remove time: {remove2}
                     total time: {time2}''')
+        except:
+            pass
+        
+        if len(scenes) > 0:
+            plot2 = Plot(scenes=scenes)
+            plot2.draw()
+
+
+        # print(f'''{n}:
+        #             \nv1: 
+        #             init: {init1}
+        #             search time: {search1} 
+        #             insert time: {sum(insert1)}
+        #             remove time: {remove1}
+        #             total time: {time1} 
+        #             \nv2: 
+        #             init: {init2}
+        #             search time: {search2} 
+        #             insert time: {sum(insert2)}
+        #             remove time: {remove2}
+        #             total time: {time2}''')
         
