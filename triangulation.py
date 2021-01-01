@@ -370,13 +370,6 @@ class Triangulation:
         return self.edges_map[edge]
 
 
-    def dist(self, point_1, point_2):
-        '''
-        odległość euklidesowa punktów point_1 i point_2
-        '''
-        return ((point_2[0]-point_1[0])**2 + (point_2[1]-point_1[1])**2)**0.5
-
-
     def find_circumcircle(self, triangle):
         '''
         zwraca środek i promień okręgu opisanego na trójkącie triangle
@@ -410,8 +403,7 @@ class Triangulation:
         a, b, c = self.sort_triangle_vertices(triangle)
         d = point
 
-        if a in self.outer_triangle:
-            a = (a[0]*self.scale, a[1]*self.scale)
+        if a in self.outer_triangle: a = (a[0]*self.scale, a[1]*self.scale)
 
         if b in self.outer_triangle:
             b = (b[0]*self.scale, b[1]*self.scale)
