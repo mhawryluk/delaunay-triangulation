@@ -4,7 +4,7 @@ from visualization import *
 from points_generator import *
 from time import time
 
-TOLERANCE = 1e-8
+TOLERANCE = 1e-12
 scenes = []
 
 class Triangulation:
@@ -430,7 +430,7 @@ class Triangulation:
                             [c[0], c[1], c[0]**2 + c[1]**2, 1],
                             [d[0], d[1], d[0]**2 + d[1]**2, 1]]
 
-        return determinant_recursive(matrix) > -TOLERANCE
+        return determinant_recursive(matrix) > TOLERANCE
     
 
     def is_within_triangle(self, triangle, point):
@@ -573,7 +573,7 @@ def delaunay_triangulation(points):
     # shuffle(points)
 
     for point in points:
-        print(points.index(point), '/', len(points))
+        # print(points.index(point), '/', len(points))
         triangle_containing = triangulation.triangle_containing(point)
         edge = triangulation.edge_with_point(point, triangle_containing)
 
@@ -613,6 +613,7 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
     # shuffle(points)
 
     for point in points:
+        # print(points.index(point), '/', len(points))
         triangle_containing = triangulation.triangle_containing(point)
 
         start = time()
@@ -647,27 +648,29 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
 
 
 if __name__ == '__main__':
-    # N = [10, 50, 100, 500, 1000, 2000, 5000, 10000]
-    N = [10000, 50000]
+    N = [10, 50, 100, 500, 1000, 2000, 5000, 10000]
+    # N = [20000]
 
     for n in N:
         points = generate_points_on_circle(n)
 
-        try:
-            time1, search1, insert1, init1, remove1 = delaunay_triangulation(points)
-            print(f'''{n}:
-                    \nv1: 
-                    init: {init1}
-                    search time: {search1} 
-                    insert time: {sum(insert1)}
-                    remove time: {remove1}
-                    total time: {time1} ''')
-            
-            if len(scenes) > 0:
-                plot1 = Plot(scenes=scenes)
-                plot1.draw()
-        except:
-            pass
+        time1, search1, insert1, init1, remove1 = delaunay_triangulation(points)
+        time2, search2, insert2, init2, remove2 = delaunay_triangulation_v2(points)
+        print(n, time1, time2)
+        continue
+
+        time1, search1, insert1, init1, remove1 = delaunay_triangulation(points)
+        print(f'''{n}:
+                \nv1: 
+                init: {init1}
+                search time: {search1} 
+                insert time: {sum(insert1)}
+                remove time: {remove1}
+                total time: {time1} ''')
+        
+        if len(scenes) > 0:
+            plot1 = Plot(scenes=scenes)
+            plot1.draw()
         scenes = []
 
         try:
