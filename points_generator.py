@@ -40,3 +40,10 @@ def generate_points_on_circle(amount):
 
 def generate_random_points(amount, range_from, range_to):
     return [(uniform(range_from, range_to), uniform(range_from, range_to)) for _ in range(amount)]
+
+def generate_multiple_rectangles(amount, max_value, tan_of_angle_to_OX):
+    points = []
+    for i in range(amount):
+        x = uniform(0, max_value)
+        points = points + [(x, tan_of_angle_to_OX*x), (x, -tan_of_angle_to_OX*x), (-x, -tan_of_angle_to_OX*x), (-x, tan_of_angle_to_OX*x)]
+    return points
