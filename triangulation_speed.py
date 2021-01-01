@@ -4,7 +4,7 @@ from visualization import *
 from points_generator import *
 from time import time
 
-TOLERANCE = 1e-12
+TOLERANCE = 1e-8
 scenes = []
 
 class Triangulation:
@@ -20,12 +20,21 @@ class Triangulation:
         self.insert_time = 0
 
         if algorithm == 1:
-            self.scale = 1000
+            self.scale = 100
         else:
             self.scale = 1
 
     def get_lines(self):
         return list(self.edges_map.keys())
+
+    def get_points(self):
+        points = set()
+        for triangle in self.triangles:
+            points.add(triangle[0])
+            points.add(triangle[1])
+            points.add(triangle[2])
+        
+        return list(points)
 
 
     def centroid_of_triangle(self, triangle):
@@ -53,14 +62,14 @@ class Triangulation:
         self.triangles.remove(triangle)
         
         a, b, c = triangle
-        # if (a,b) in self.edges_map:
-        del self.edges_map[(a, b)]
+        if (a,b) in self.edges_map:
+            del self.edges_map[(a, b)]
         
-        # if (b, c) in self.edges_map:
-        del self.edges_map[(b, c)]
+        if (b, c) in self.edges_map:
+            del self.edges_map[(b, c)]
         
-        # if (c,a) in self.edges_map:
-        del self.edges_map[(c, a)]
+        if (c,a) in self.edges_map:
+            del self.edges_map[(c, a)]
 
 
     def sort_triangle_vertices(self, triangle):
@@ -72,8 +81,7 @@ class Triangulation:
         if det_sgn(a,b,c) == -1:
             a, b = b, a
 
-        while(a[1] > min(b[1], c[1])
-              or (a[1] == min(b[1], c[1]) and a[1] != b[1])):
+        while a[1] > min(b[1], c[1]) or (a[1] == min(b[1], c[1]) and a[1] != b[1]):
             a, b, c = b, c, a
             
         return (a, b, c)
@@ -87,7 +95,7 @@ class Triangulation:
         max_coord = abs(max(points, key=lambda x: abs(x[0]))[0])
         max_coord = max(max_coord, abs(max(points, key = lambda x: abs(x[1]))[1]))
 
-        self.outer_triangle = ((4*max_coord, 0), (0, 4*max_coord), (-4*max_coord, -4*max_coord))
+        self.outer_triangle = ((3.5*max_coord, 0), (0, 3.5*max_coord), (-3.5*max_coord, -3.5*max_coord))
         self.outer_triangle = self.sort_triangle_vertices(self.outer_triangle)
         self.add_triangle(self.outer_triangle)
 
@@ -121,13 +129,22 @@ class Triangulation:
         while True:
             i += 1
 
+            if current is None:
+                plot = Plot(scenes=[Scene(points=[PointsCollection(self.get_points(), color='orange', marker=','),
+                    PointsCollection([point], color='red')],
+                                    lines=[LinesCollection(self.get_lines()),
+                                    LinesCollection(self.edges(self.central_triangle), color='yellow')])])
+                plot.draw()
+
             if (i > len(self.triangles)):
-                print(i)
+                print(current)
+                print("point: ", point)
+                print("central: ", self.central_point)
                 scenes.append(Scene(points=[PointsCollection([point], color='red')],
                 lines=[LinesCollection(self.get_lines(), color='blue'),
                 LinesCollection(self.edges(current), color='yellow')]))
             
-            if (i >= len(self.triangles) + 100):
+            if (i >= len(self.triangles) + 20):
                 return
 
             a, b, c = current
@@ -187,9 +204,9 @@ class Triangulation:
         update centralnego trójkąta
         '''
         for triangle in triangle_list:
-            a, b, c = self.sort_triangle_vertices(triangle)
-            if det_sgn(a, b, self.central_point) != -1 and det_sgn(b, c, self.central_point) != -1 and det_sgn(c, a, self.central_point) != -1:
-                self.central_triangle = (a,b,c)
+            sorted_triangle = self.sort_triangle_vertices(triangle)
+            if self.is_within_triangle(sorted_triangle, self.central_point):
+                self.central_triangle = sorted_triangle
 
 
     def edges(self, triangle):  
@@ -231,39 +248,48 @@ class Triangulation:
 
         start = time()
 
-        ver1, ver2 = edge
+        try:
 
-        if not edge in self.edges_map:
-            ver1, ver2 = ver2, ver1
+            ver1, ver2 = edge
 
-        edge1 = ver1, ver2
-        edge2 = ver2, ver1
-        third_vertex_1 = self.third_vertex(edge1)
-        third_vertex_2 = self.third_vertex(edge2)
-    
-        oldTriangle1 = ver1, ver2, third_vertex_1
-        oldTriangle2 = ver1, ver2, third_vertex_2
+            if not edge in self.edges_map:
+                ver1, ver2 = ver2, ver1
+
+            edge1 = ver1, ver2
+            edge2 = ver2, ver1
+
+            third_vertex_1 = self.third_vertex(edge1)
+            third_vertex_2 = self.third_vertex(edge2)
         
-        triangle1 = point, ver1, third_vertex_1
-        triangle2 = point, ver1, third_vertex_2
-        triangle3 = point, ver2, third_vertex_1
-        triangle4 = point, ver2, third_vertex_2
+            oldTriangle1 = ver1, ver2, third_vertex_1
+            oldTriangle2 = ver1, ver2, third_vertex_2
+            
+            triangle1 = point, ver1, third_vertex_1
+            triangle2 = point, ver1, third_vertex_2
+            triangle3 = point, ver2, third_vertex_1
+            triangle4 = point, ver2, third_vertex_2
 
-        if self.is_triangle_central(oldTriangle1) or self.is_triangle_central(oldTriangle2):
-            self.update_central_triangle([triangle1, triangle2, triangle3, triangle4])
+            if self.is_triangle_central(oldTriangle1) or self.is_triangle_central(oldTriangle2):
+                self.update_central_triangle([triangle1, triangle2, triangle3, triangle4])
 
-        self.remove_triangle(oldTriangle1)
-        self.remove_triangle(oldTriangle2)
+            self.remove_triangle(oldTriangle1)
+            self.remove_triangle(oldTriangle2)
 
-        self.add_triangle(triangle1)
-        self.add_triangle(triangle2)
-        self.add_triangle(triangle3)
-        self.add_triangle(triangle4)
+            self.add_triangle(triangle1)
+            self.add_triangle(triangle2)
+            self.add_triangle(triangle3)
+            self.add_triangle(triangle4)
 
-        self.legalize_edge(point, (ver1, third_vertex_1))
-        self.legalize_edge(point, (ver1, third_vertex_2))
-        self.legalize_edge(point, (ver2, third_vertex_1))
-        self.legalize_edge(point, (ver2, third_vertex_2))
+            self.legalize_edge(point, (ver1, third_vertex_1))
+            self.legalize_edge(point, (ver1, third_vertex_2))
+            self.legalize_edge(point, (ver2, third_vertex_1))
+            self.legalize_edge(point, (ver2, third_vertex_2))
+
+        except:
+            plot = Plot(points=[PointsCollection([point], color='red')],
+                        lines=[LinesCollection(self.get_lines()),
+                        LinesCollection([edge], color='purple')])
+            plot.draw()
 
         end = time()
         self.insert_time += (end-start)
@@ -573,7 +599,7 @@ def delaunay_triangulation(points):
     # shuffle(points)
 
     for point in points:
-        # print(points.index(point), '/', len(points))
+        print(points.index(point), '/', len(points))
         triangle_containing = triangulation.triangle_containing(point)
         edge = triangulation.edge_with_point(point, triangle_containing)
 
@@ -613,7 +639,7 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
     # shuffle(points)
 
     for point in points:
-        # print(points.index(point), '/', len(points))
+        print(points.index(point), '/', len(points))
         triangle_containing = triangulation.triangle_containing(point)
 
         start = time()
@@ -648,8 +674,20 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
 
 
 if __name__ == '__main__':
-    N = [10, 50, 100, 500, 1000, 2000, 5000, 10000]
+
+#     ((-81057039.18386127, 133580757.96590608), (-80983750.38631162, 133625202.23882759), (-81055600.2485696, 133581631.10377148))
+# point:  (-81055863.9382679, 133581471.09992838)
+# central:  (0.0, 0.0)
+# ((-81057039.18386127, 133580757.96590608), (-81055600.2485696, 133581631.10377148), (0, 468749998.8999461))
+    
+    t = Triangulation()
+    plot = Plot(lines=[LinesCollection(t.edges(((1727.2033054771407, 1159.195041784289), (2500, 3750.0), (1670.0480086552427, 1244.9279870171358)))),
+    LinesCollection(t.edges(((1057.261057571122, 0.0), (1727.2033054771407, 1159.195041784289), (1670.0480086552427, 1244.9279870171358))))])
+    plot.draw()
+
+    # N = [10, 50, 100, 500, 1000, 2000, 5000, 10000]
     # N = [20000]
+    N = []
 
     for n in N:
         points = generate_points_on_circle(n)

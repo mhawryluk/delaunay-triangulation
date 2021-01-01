@@ -2,6 +2,7 @@ import triangulation as t
 import triangulation_speed as ts
 from points_generator import *
 from visualization import *
+import sys
 
 class Option:
     def __init__(self, value, name, function):
@@ -73,6 +74,7 @@ def many_rectangles():
 def main(options):
     flag = True
     points = None
+    sys.setrecursionlimit(10000)
     while flag:
         print("Dostępne opcje: ")
         for option in options.list:
@@ -98,8 +100,11 @@ def main(options):
                     
                 if extend_visuals:
                     print("Uruchamiam algorytmy z poszerzoną wizualizacją")
-                    _, scenes1 = t.delaunay_triangulation(points)
                     _, scenes2 = t.delaunay_triangulation_v2(points)
+                    try:
+                        _, scenes1 = t.delaunay_triangulation(points)
+                    except:
+                        pass
                     scenes1 = [[PointsCollection([(0,0)], color='white')], Scene([PointsCollection(points)])] + [scenes1[-1]] + scenes1
                     scenes2 = [[PointsCollection([(0,0)], color='white')], Scene([PointsCollection(points)])] + [scenes2[-1]] + scenes2
                     plot1 = Plot(scenes=scenes1)
@@ -140,3 +145,4 @@ options = Options([
     ])
 
 main(options)
+

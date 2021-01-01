@@ -29,10 +29,10 @@ def generate_points_on_axis_and_diagonals(amountAxis, amountDiagonal, x, y):
 
 def generate_points_on_circle(amount):
     center = (0,0)
-    radius = amount**0.5
+    radius = amount/6
     points_list = []
     for i in range(amount):
-        t = random()
+        t = uniform(1/4, 1/2)
         pt = (radius * cos(2 * pi * t) + center[0], radius * sin(2 * pi * t) + center[1])
         points_list.append(pt)
     return points_list
