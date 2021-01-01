@@ -4,7 +4,7 @@ from visualization import *
 from points_generator import *
 
 
-TOLERANCE = 1e-8
+TOLERANCE = 1e-12
 
 triangulation_color = 'darkgrey'
 
@@ -420,7 +420,7 @@ class Triangulation:
                     [c[0], c[1], c[0]**2 + c[1]**2, 1],
                     [d[0], d[1], d[0]**2 + d[1]**2, 1]]
 
-        return determinant_recursive(matrix) > -TOLERANCE
+        return determinant_recursive(matrix) > TOLERANCE
     
 
     def is_within_triangle(self, triangle, point):
@@ -597,7 +597,7 @@ def delaunay_triangulation(points):
     triangulation.remove_outer()
     triangulation.scenes.append(Scene(
         lines=[LinesCollection(list(triangulation.edges_map.keys()), color='darkblue')]))
-    return list(triangulation.triangles), triangulation.get_lines(), triangulation.scenes
+    return list(triangulation.triangles), triangulation.scenes
 
 
 def delaunay_triangulation_v2(points): # Bowyer–Watson
@@ -638,7 +638,7 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
     triangulation.remove_outer()
 
     triangulation.scenes.append(Scene(lines=[LinesCollection(list(triangulation.edges_map.keys()), color='lightblue')]))
-    return list(triangulation.triangles), triangulation.edges_map.keys(), triangulation.scenes
+    return list(triangulation.triangles), triangulation.scenes
 
 
 
@@ -646,8 +646,8 @@ if __name__ == '__main__':
 
     for i in range(1):
         points = generate_random_points(20, -200, 200)
-        triangulation1, edges1, scenes1 = delaunay_triangulation(points)
-        triangulation2, edges2, scenes2 = delaunay_triangulation_v2(points)
+        triangulation1, scenes1 = delaunay_triangulation(points)
+        triangulation2, scenes2 = delaunay_triangulation_v2(points)
 
         plot1 = Plot(scenes=scenes1)
         plot2 = Plot(scenes=scenes2)

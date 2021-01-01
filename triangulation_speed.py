@@ -594,7 +594,7 @@ def delaunay_triangulation(points):
     remove_end = time()
 
     end = time()
-    return end - start, triangulation.search_time, triangulation.insert_times, init_end - init_start, remove_end - remove_start
+    return end - start, triangulation.search_time, triangulation.insert_times, init_end - init_start, remove_end - remove_start, [ Scene(lines=[LinesCollection(triangulation.get_lines(), color='darkblue')]) ]
 
 
 def delaunay_triangulation_v2(points): # Bowyer–Watson
@@ -643,7 +643,7 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
     remove_end = time()
 
     main_end = time()
-    return main_end-main_start, triangulation.search_time, triangulation.insert_times, init_end - init_start, remove_end - remove_start
+    return main_end-main_start, triangulation.search_time, triangulation.insert_times, init_end - init_start, remove_end - remove_start, [ Scene(lines=[LinesCollection(triangulation.get_lines(), color='darkblue')]) ]
 
 
 
