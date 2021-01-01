@@ -1,5 +1,5 @@
-from triangulation import *
-import triangulation_speed as t
+import triangulation as t
+import triangulation_speed as ts
 from points_generator import *
 from visualization import *
 
@@ -83,15 +83,48 @@ def main(options):
             if points is None:
                 flag = False
             else:
-                print("Uruchamiam algorytmy")
-                triangulation1, edges1, scenes1 = delaunay_triangulation(points)
-                triangulation2, edges2, scenes2 = delaunay_triangulation_v2(points)
+                print("Jeśli chcesz otrzymać pełną wizualizację dizałania algorytmu wpisz \"tak\" i wciścnij ENTER\n UWAGA!!! Ta opcja znacząco wpowalnia dizałanie algorytmu i jest zalecana tylko dla małych zbiorów punktów")
+                extend_visuals = input()
+                if extend_visuals in ["TAK", "Tak", "tak"]:
+                    extend_visuals = True
+                else:
+                    extend_visuals = False
+                    
+                if extend_visuals:
+                    print("Uruchamiam algorytmy z poszerzoną wizualizacją")
+                    _, _, scenes1 = t.delaunay_triangulation(points)
+                    _, _, scenes2 = t.delaunay_triangulation_v2(points)
+                    scenes1 = [Scene(PointsCollection([points]))] + [scenes1[-1]] + scenes1[:-1]
+                    scenes2 = [Scene(PointsCollection([points]))] + [scenes2[-1]] + scenes2[:-1]
+                    plot1 = Plot(scenes=scenes1)
+                    plot2 = Plot(scenes=scenes2)
 
-                plot1 = Plot(scenes=scenes1)
-                plot2 = Plot(scenes=scenes2)
+                    plot1.draw()
+                    plot2.draw()
+                else:
+                    print("Uruchamiam algorytmy")
+                    time1, search1, insert1, init1, remove1, scenes = ts.delaunay_triangulation(points)
+                    time2, search2, insert2, init2, remove2, _ = ts.delaunay_triangulation_v2(points)
+                    scenes = [Scene(PointsCollection[points])] + scenes
+                    plot = Plot(scenes=scenes)
+                    plot.draw()
+                    print("Version 1:")
+                    print(f'''{n}:
+                        \nv1: 
+                        init: {init1}
+                        search time: {search1} 
+                        insert time: {sum(insert1)}
+                        remove time: {remove1}
+                        total time: {time1} ''')
+                    print("Version 2:")
+                    print(f'''v2: 
+                        init: {init2}
+                        search time: {search2} 
+                        insert time: {sum(insert2)}
+                        remove time: {remove2}
+                        total time: {time2}''')
 
-                plot1.draw()
-                plot2.draw()
+                
     
 
 
