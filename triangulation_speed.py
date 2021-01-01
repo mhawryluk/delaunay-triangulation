@@ -17,7 +17,7 @@ class Triangulation:
         self.central_point = None
         self.time = 0
         self.search_time = 0
-        self.insert_times = []
+        self.insert_time = 0
 
         if algorithm == 1:
             self.scale = 1000
@@ -221,7 +221,7 @@ class Triangulation:
         self.legalize_edge(point, (triangle[2], triangle[0]))
 
         end = time()
-        self.insert_times.append(end-start)
+        self.insert_time += (end-start)
 
 
     def split_triangle_on_edge(self, edge, point):
@@ -266,7 +266,7 @@ class Triangulation:
         self.legalize_edge(point, (ver2, third_vertex_2))
 
         end = time()
-        self.insert_times.append(end-start)
+        self.insert_time += (end-start)
 
 
     def intersect(self, l1b, l1e, l2b, l2e):
@@ -594,7 +594,7 @@ def delaunay_triangulation(points):
     remove_end = time()
 
     end = time()
-    return end - start, triangulation.search_time, triangulation.insert_times, init_end - init_start, remove_end - remove_start, [ Scene(lines=[LinesCollection(triangulation.get_lines(), color='darkblue')]) ]
+    return end - start, triangulation.search_time, triangulation.insert_time, init_end - init_start, remove_end - remove_start, [ Scene(lines=[LinesCollection(triangulation.get_lines(), color='darkblue')]) ]
 
 
 def delaunay_triangulation_v2(points): # Bowyer–Watson
@@ -636,14 +636,14 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
     
         triangulation.remove_and_connect_2(triangles_to_remove, point)
         end = time()
-        triangulation.insert_times.append(end-start)
+        triangulation.insert_time += (end-start)
     
     remove_start = time()
     triangulation.remove_outer()
     remove_end = time()
 
     main_end = time()
-    return main_end-main_start, triangulation.search_time, triangulation.insert_times, init_end - init_start, remove_end - remove_start, [ Scene(lines=[LinesCollection(triangulation.get_lines(), color='darkblue')]) ]
+    return main_end-main_start, triangulation.search_time, triangulation.insert_time, init_end - init_start, remove_end - remove_start, [ Scene(lines=[LinesCollection(triangulation.get_lines(), color='lightblue')]) ]
 
 
 
@@ -664,7 +664,7 @@ if __name__ == '__main__':
                 \nv1: 
                 init: {init1}
                 search time: {search1} 
-                insert time: {sum(insert1)}
+                insert time: {insert1}
                 remove time: {remove1}
                 total time: {time1} ''')
         
@@ -678,7 +678,7 @@ if __name__ == '__main__':
             print(f'''v2: 
                     init: {init2}
                     search time: {search2} 
-                    insert time: {sum(insert2)}
+                    insert time: {insert2}
                     remove time: {remove2}
                     total time: {time2}''')
         except:
@@ -687,19 +687,4 @@ if __name__ == '__main__':
         if len(scenes) > 0:
             plot2 = Plot(scenes=scenes)
             plot2.draw()
-
-
-        # print(f'''{n}:
-        #             \nv1: 
-        #             init: {init1}
-        #             search time: {search1} 
-        #             insert time: {sum(insert1)}
-        #             remove time: {remove1}
-        #             total time: {time1} 
-        #             \nv2: 
-        #             init: {init2}
-        #             search time: {search2} 
-        #             insert time: {sum(insert2)}
-        #             remove time: {remove2}
-        #             total time: {time2}''')
         
