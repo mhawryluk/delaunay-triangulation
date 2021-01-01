@@ -1,4 +1,5 @@
 from triangulation import *
+import triangulation_speed as t
 from points_generator import *
 from visualization import *
 
@@ -14,7 +15,7 @@ class Option:
         return self.function()
 
     def show(self):
-        print(self.value,") ",self.name)
+        print(f"{self.value}) {self.name}")
 
 class Options:
     def __init__(self, options):
@@ -41,22 +42,24 @@ def draw_by_hand():
     plot.draw()
 
     fig = plot.get_added_elements()
-    return fig.points[0].points
+    if len(fig.points) > 0:
+        return fig.points[0].points
+    return None
 
 def random_points():
-    print("Wprowadź ilość punktów")
+    print("Wprowadź liczbę punktów")
 
-    amount = input()
+    amount = int(input())
     return generate_random_points(amount, -amount/2, amount/2)
 
 def points_on_circle():
-    print("Wprowadź ilość punktów")
+    print("Wprowadź liczbę punktów")
     
-    amount = input()
+    amount = int(input())
     return generate_points_on_circle(amount)
 
 def points_on_rectangle():
-    print("Wprowadź ilość punktów na osiach i ilość punktów na przekątnych")
+    print("Wprowadź liczbę punktów na osisach i liczbę punktów na przekątnych")
 
     amount_axis, amount_diagonal  = map(int, input().split())
     return generate_points_on_axis_and_diagonals(amount_axis, amount_diagonal, amount_axis, 1.5*amount_axis)

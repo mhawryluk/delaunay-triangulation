@@ -604,8 +604,7 @@ def delaunay_triangulation(points):
 
     triangulation.remove_outer()
     triangulation.scenes.append(Scene(
-        lines=[LinesCollection(list(triangulation.edges_map.keys()), color='darkblue'),
-        LinesCollection(triangulation.edges(triangulation.central_triangle, color='yellow'))]))
+        lines=[LinesCollection(list(triangulation.edges_map.keys()), color='darkblue')]))
     return list(triangulation.triangles), triangulation.get_lines(), triangulation.scenes
 
 
