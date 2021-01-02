@@ -32,7 +32,7 @@ def generate_points_on_circle(amount):
     radius = amount/6
     points_list = []
     for i in range(amount):
-        t = uniform(1/4, 1/2)
+        t = random()
         pt = (radius * cos(2 * pi * t) + center[0], radius * sin(2 * pi * t) + center[1])
         points_list.append(pt)
     return points_list
@@ -40,6 +40,7 @@ def generate_points_on_circle(amount):
 
 def generate_random_points(amount, range_from, range_to):
     return [(uniform(range_from, range_to), uniform(range_from, range_to)) for _ in range(amount)]
+
 
 def generate_multiple_rectangles(amount, max_value, tan_of_angle_to_OX):
     points = []

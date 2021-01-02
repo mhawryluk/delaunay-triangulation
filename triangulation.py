@@ -1,10 +1,9 @@
-from random import shuffle
 from math import inf
 from visualization import *
 from points_generator import *
 
 
-TOLERANCE = 1e-12
+TOLERANCE = 1e-8
 
 triangulation_color = 'darkgrey'
 
@@ -17,15 +16,19 @@ class Triangulation:
         self.central_triangle = None
         self.central_point = None
         self.scenes = []
-        if algorithm == 1:
-            self.scale = 1000
-        else:
-            self.scale = 1
+        self.scale = 1 if algorithm == 0 else 100
 
     def get_lines(self):
         return list(self.edges_map.keys())
 
-
+    def get_points(self):
+        points = set()
+        for triangle in self.triangles:
+            points.add(triangle[0])
+            points.add(triangle[1])
+            points.add(triangle[2])
+        
+        return list(points)
     def centroid_of_triangle(self, triangle):
         (ax, ay), (bx, by), (cx, cy) = triangle
         return ((ax+bx+cx)/3 , (ay+by+cy)/3)
@@ -52,9 +55,9 @@ class Triangulation:
         
         a, b, c = triangle
 
-        del self.edges_map[(a, b)] 
-        del self.edges_map[(b, c)]
-        del self.edges_map[(c, a)]
+        if (a,b) in self.edges_map: del self.edges_map[(a, b)]
+        if (b, c) in self.edges_map: del self.edges_map[(b, c)]
+        if (c,a) in self.edges_map: del self.edges_map[(c, a)]
 
 
     def sort_triangle_vertices(self, triangle):
@@ -66,8 +69,7 @@ class Triangulation:
         if det_sgn(a,b,c) == -1:
             a, b = b, a
 
-        while(a[1] > min(b[1], c[1])
-              or (a[1] == min(b[1], c[1]) and a[1] != b[1])):
+        while(a[1] > min(b[1], c[1]) or (a[1] == min(b[1], c[1]) and a[1] != b[1])):
             a, b, c = b, c, a
             
         return (a, b, c)
@@ -81,7 +83,7 @@ class Triangulation:
         max_coord = abs(max(points, key=lambda x: abs(x[0]))[0])
         max_coord = max(max_coord, abs(max(points, key = lambda x: abs(x[1]))[1]))
 
-        self.outer_triangle = ((3*max_coord, 0), (0, 3*max_coord), (-3*max_coord, -3*max_coord))
+        self.outer_triangle = ((3.5*max_coord, 0), (0, 3.5*max_coord), (-3.5*max_coord, -3.5*max_coord))
         self.outer_triangle = self.sort_triangle_vertices(self.outer_triangle)
         self.add_triangle(self.outer_triangle)
 
@@ -107,12 +109,18 @@ class Triangulation:
         zwraca trójkąt, w którym lezy punkt, ewentualnie lezy na brzegu
         '''
         current = self.central_triangle
+        visited = set()
 
         self.scenes.append(Scene([PointsCollection([point], color='red')],
                                 [LinesCollection(self.get_lines(), color=triangulation_color)]))
 
         while True:
             a, b, c = current
+            if current in visited:
+                raise Exception()
+
+            visited.add(current)
+
             self.scenes.append(Scene([PointsCollection([point], color='red')],
                                 [LinesCollection(self.get_lines(), color=triangulation_color),
                                 LinesCollection([(a,b), (b,c), (c,a)], color='yellow')]))              
@@ -170,9 +178,9 @@ class Triangulation:
         update centralnego trójkąta
         '''
         for triangle in triangle_list:
-            a, b, c = self.sort_triangle_vertices(triangle)
-            if det_sgn(a, b, self.central_point) != -1 and det_sgn(b, c, self.central_point) != -1 and det_sgn(c, a, self.central_point) != -1:
-                self.central_triangle = (a,b,c)
+            sorted_triangle = self.sort_triangle_vertices(triangle)
+            if self.is_within_triangle(sorted_triangle, self.central_point):
+                self.central_triangle = sorted_triangle
 
 
     def edges(self, triangle):  
@@ -369,7 +377,13 @@ class Triangulation:
         '''
         return self.edges_map[edge]
 
+    def rescale(self, a, b, c, d):
+        if a in self.outer_triangle: a = (a[0]*self.scale, a[1]*self.scale)
+        if b in self.outer_triangle: b = (b[0]*self.scale, b[1]*self.scale)
+        if c in self.outer_triangle: c = (c[0]*self.scale, c[1]*self.scale)
+        if d in self.outer_triangle: d = (d[0]*self.scale, d[1]*self.scale)
 
+        return a, b, c, d
     def find_circumcircle(self, triangle):
         '''
         zwraca środek i promień okręgu opisanego na trójkącie triangle
@@ -403,16 +417,7 @@ class Triangulation:
         a, b, c = self.sort_triangle_vertices(triangle)
         d = point
 
-        if a in self.outer_triangle: a = (a[0]*self.scale, a[1]*self.scale)
-
-        if b in self.outer_triangle:
-            b = (b[0]*self.scale, b[1]*self.scale)
-
-        if c in self.outer_triangle:
-            c = (c[0]*self.scale, c[1]*self.scale)
-
-        if d in self.outer_triangle:
-            d = (d[0]*self.scale, d[1]*self.scale)
+        a, b, c, d = self.rescale(a, b, c, d)
 
 
         matrix = [[a[0], a[1], a[0]**2 + a[1]**2, 1],
@@ -576,8 +581,6 @@ def delaunay_triangulation(points):
     triangulation = Triangulation(0)
     triangulation.make_outer_triangle(points)
 
-    # shuffle(points)
-
     for point in points:
         triangle_containing = triangulation.triangle_containing(point)
         edge = triangulation.edge_with_point(point, triangle_containing)
@@ -607,8 +610,6 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
     '''
     triangulation = Triangulation(1)
     triangulation.make_outer_triangle(points)
-
-    # shuffle(points)
 
     for point in points:
         triangle_containing = triangulation.triangle_containing(point)
@@ -642,18 +643,18 @@ def delaunay_triangulation_v2(points): # Bowyer–Watson
 
 
 
-if __name__ == '__main__':
+# if __name__ == '__main__':
 
-    for i in range(1):
-        points = generate_random_points(20, -200, 200)
-        triangulation1, scenes1 = delaunay_triangulation(points)
-        triangulation2, scenes2 = delaunay_triangulation_v2(points)
+#     for i in range(1):
+#         points = generate_random_points(20, -200, 200)
+#         triangulation1, scenes1 = delaunay_triangulation(points)
+#         triangulation2, scenes2 = delaunay_triangulation_v2(points)
 
-        plot1 = Plot(scenes=scenes1)
-        plot2 = Plot(scenes=scenes2)
+#         plot1 = Plot(scenes=scenes1)
+#         plot2 = Plot(scenes=scenes2)
 
-        plot1.draw()
-        plot2.draw()
+#         plot1.draw()
+#         plot2.draw()
 
 
 
