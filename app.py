@@ -3,6 +3,7 @@ import triangulation_speed as ts
 from points_generator import *
 from visualization import *
 import sys
+from matplotlib.animation import FuncAnimation
 
 class Option:
     def __init__(self, value, name, function):
@@ -34,6 +35,18 @@ class Options:
             if option.compare_to(value):
                 return option
         return None
+
+class AnimationSet:
+    def __init__(self, scenes = [Scene()], points = [], lines = []):
+        self.scenes = scenes
+
+        if points or lines:
+            self.scenes[0].points = points
+            self.scenes[0].lines = lines
+            self.compressScenes()
+
+    def compressScenes(self):
+        self.scenes = list(dict.fromkeys(self.scenes))
 
 def end():
     return None
@@ -102,7 +115,7 @@ def main(options):
                 continue
 
             else:
-                print("\nJeśli chcesz otrzymać pełną wizualizację działania algorytmu wpisz \"tak\" i wciśnij ENTER\n dla otrzymania czasów i końcowej wizualizacji wpisz cokolwiek innego.\nUWAGA!!! Ta opcja znacząco spowalnia działanie algorytmu i jest zalecana tylko dla małych zbiorów punktów")
+                print("\nJeśli chcesz zobaczyć animację wizualizacji działania algorytmu krok po kroku wpisz \"tak\" i wciśnij ENTER...\n(UWAGA! Ta opcja znacząco spowalnia działanie algorytmu i jest zalecana tylko dla małych zbiorów punktów)\n\ndla otrzymania czasów i końcowej wizualizacji wpisz cokolwiek innego.\n")
                 extend_visuals = input()
                 if extend_visuals in ["TAK", "Tak", "tak"]:
                     extend_visuals = True
@@ -118,14 +131,31 @@ def main(options):
                     except:
                         print("an error occured")
                         continue
-                    
-                    scenes1 = [Scene([PointsCollection([(0,0)], color='white')]), Scene([PointsCollection(points)])] + [scenes1[-1]] + scenes1
-                    scenes2 = [Scene([PointsCollection([(0,0)], color='white')]), Scene([PointsCollection(points)])] + [scenes2[-1]] + scenes2
-                    plot1 = Plot(scenes=scenes1)
-                    plot2 = Plot(scenes=scenes2)
 
-                    plot1.draw()
-                    plot2.draw()
+                    delay = 1.2
+
+                    anim = AnimationSet(scenes = scenes1 + [scenes1[-1]]*12 + scenes2 + [scenes2[-1]]*12)
+                    fig = plt.figure()
+                    ax = plt.axes(autoscale_on = True)
+
+                    def animate(index):
+                        ax.clear()
+
+                        for collection in (anim.scenes[index].points):
+                            if len(collection.points) > 0:
+                                ax.scatter(*zip(*(np.array(collection.points))), **collection.kwargs)
+                        
+                        for collection in (anim.scenes[index].lines):
+                            ax.add_collection(collection.get_collection())
+
+                        ax.autoscale(True)
+                        plt.draw()
+                        return None
+
+                    animate(0)
+                    animation = FuncAnimation(fig, animate, repeat = True, frames = np.arange(0, len(anim.scenes)), interval = delay)
+                    plt.show()
+
                 else:
                     print("Uruchamiam algorytmy")
 
