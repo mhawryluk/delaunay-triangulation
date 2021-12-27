@@ -15,7 +15,7 @@
 
 
 ## General Information
-Created as a final assignment for the Geometric Algorithms class at the AGH University of Science and Technology, the project centeres around implementating the construction of a Delaunay (Delone) triangulation for a given set of discrete points on a 2D surface, as well as visualizing the algorithm step by step.
+Created as a final assignment for the Geometric Algorithms class at the AGH University of Science and Technology, the project centers around implementing the construction of a Delaunay (Delone) triangulation for a given set of discrete points on a 2D surface, as well as visualizing the algorithm step by step.
 
 As of now the app and comments are written in Polish.
 
